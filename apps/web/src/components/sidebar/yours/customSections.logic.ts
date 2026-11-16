@@ -3,7 +3,10 @@ import {
   SIDEBAR_SECTION_COLORS,
   type SidebarCustomSection,
   type SidebarSectionColor,
+  type SidebarSectionIcon,
 } from "@t3tools/contracts";
+
+import { suggestSectionIcon } from "./sectionIcons.logic";
 
 /** Membership lives on the thread as a tag, so it follows the thread to every client. */
 const SIDEBAR_SECTION_TAG_PREFIX = "section:";
@@ -103,6 +106,8 @@ function nextSectionColor(
   return SIDEBAR_SECTION_COLORS.find((color) => color !== "gray" && !used.has(color)) ?? "gray";
 }
 
+const DEFAULT_SECTION_NAME = "New section";
+
 export function createSidebarSection(
   sections: ReadonlyArray<SidebarCustomSection>,
   input: { readonly id: string; readonly name?: string },
@@ -111,7 +116,7 @@ export function createSidebarSection(
     ...sections,
     {
       id: input.id,
-      name: input.name?.trim() || "New section",
+      name: input.name?.trim() || DEFAULT_SECTION_NAME,
       color: nextSectionColor(sections),
       collapsed: false,
     },
@@ -121,17 +126,46 @@ export function createSidebarSection(
 export function updateSidebarSection(
   sections: ReadonlyArray<SidebarCustomSection>,
   id: string,
-  patch: Partial<Omit<SidebarCustomSection, "id">>,
+  patch: Partial<Pick<SidebarCustomSection, "color" | "collapsed">>,
 ): SidebarCustomSection[] {
-  return sections.map((section) =>
-    section.id === id
-      ? {
-          ...section,
-          ...patch,
-          ...(patch.name === undefined ? {} : { name: patch.name.trim() || section.name }),
-        }
-      : section,
-  );
+  return sections.map((section) => (section.id === id ? { ...section, ...patch } : section));
+}
+
+/**
+ * Renames a section. Naming a fresh section also gives it an icon the name suggests;
+ * sections the user already named keep whatever they have, so nothing changes under them.
+ */
+export function renameSidebarSection(
+  sections: ReadonlyArray<SidebarCustomSection>,
+  id: string,
+  name: string,
+): SidebarCustomSection[] {
+  return sections.map((section) => {
+    if (section.id !== id) return section;
+    const nextName = name.trim() || section.name;
+    const suggested =
+      section.icon === undefined && section.name === DEFAULT_SECTION_NAME
+        ? suggestSectionIcon(nextName)
+        : null;
+    return {
+      ...section,
+      name: nextName,
+      ...(suggested === null ? {} : { icon: { kind: "lucide" as const, name: suggested } }),
+    };
+  });
+}
+
+/** Sets a section's icon; null puts the color dot back. */
+export function setSidebarSectionIcon(
+  sections: ReadonlyArray<SidebarCustomSection>,
+  id: string,
+  icon: SidebarSectionIcon | null,
+): SidebarCustomSection[] {
+  return sections.map((section) => {
+    if (section.id !== id) return section;
+    const { icon: _previous, ...rest } = section;
+    return icon === null ? rest : { ...rest, icon };
+  });
 }
 
 export function moveSidebarSection(

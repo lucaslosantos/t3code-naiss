@@ -8,7 +8,8 @@ import {
   resolveThreadSectionId,
   splitThreadsIntoCustomSections,
   staleSectionTags,
-  updateSidebarSection,
+  renameSidebarSection,
+  setSidebarSectionIcon,
   withSectionMenuItems,
 } from "./customSections.logic";
 
@@ -92,8 +93,29 @@ describe("section definitions", () => {
   });
 
   it("keeps the old name when a rename is blank", () => {
-    expect(updateSidebarSection([section("a")], "a", { name: "  " })[0]!.name).toBe("a");
-    expect(updateSidebarSection([section("a")], "a", { name: " Ship " })[0]!.name).toBe("Ship");
+    expect(renameSidebarSection([section("a")], "a", "  ")[0]!.name).toBe("a");
+    expect(renameSidebarSection([section("a")], "a", " Ship ")[0]!.name).toBe("Ship");
+  });
+
+  it("suggests an icon only when naming a fresh section", () => {
+    const fresh = section("a", { name: "New section" });
+    expect(renameSidebarSection([fresh], "a", "Ready to merge")[0]!.icon).toEqual({
+      kind: "lucide",
+      name: "git-merge",
+    });
+    expect(renameSidebarSection([fresh], "a", "Misc")[0]).not.toHaveProperty("icon");
+    expect(renameSidebarSection([section("a")], "a", "Bugs")[0]).not.toHaveProperty("icon");
+    const emoji = { kind: "emoji" as const, value: "🎉" };
+    expect(
+      renameSidebarSection([section("a", { name: "New section", icon: emoji })], "a", "Bugs")[0]!
+        .icon,
+    ).toEqual(emoji);
+  });
+
+  it("sets and clears a section icon", () => {
+    const withIcon = setSidebarSectionIcon([section("a")], "a", { kind: "lucide", name: "bug" });
+    expect(withIcon[0]!.icon).toEqual({ kind: "lucide", name: "bug" });
+    expect(setSidebarSectionIcon(withIcon, "a", null)[0]).not.toHaveProperty("icon");
   });
 
   it("moves a section within bounds", () => {

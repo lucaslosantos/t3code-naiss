@@ -15,11 +15,26 @@ it("drops a malformed sidebar section alone and fills defaults", () => {
         { name: "No id" },
         "junk",
         { id: "b", name: "Review", color: "teal", collapsed: true },
+        { id: "c", name: "Ship", icon: { kind: "lucide", name: "rocket" } },
+        { id: "d", name: "Fun", icon: { kind: "emoji", value: "🎉" } },
+        { id: "e", name: "Bad icon", icon: { kind: "svg", path: "M0" } },
+        { id: "f", name: "Empty icon", icon: { kind: "emoji", value: "" } },
+        { id: "", name: "Bad id and icon", icon: "junk" },
       ],
     }).sidebarCustomSections,
   ).toEqual([
     { id: "a", name: "Growth", color: "gray", collapsed: false },
     { id: "b", name: "Review", color: "teal", collapsed: true },
+    {
+      id: "c",
+      name: "Ship",
+      color: "gray",
+      collapsed: false,
+      icon: { kind: "lucide", name: "rocket" },
+    },
+    { id: "d", name: "Fun", color: "gray", collapsed: false, icon: { kind: "emoji", value: "🎉" } },
+    { id: "e", name: "Bad icon", color: "gray", collapsed: false },
+    { id: "f", name: "Empty icon", color: "gray", collapsed: false },
   ]);
   expect(decodeClientSettings({}).sidebarCustomSections).toEqual([]);
   expect(decodeClientSettings({}).sidebarShowSubagents).toBe(true);
