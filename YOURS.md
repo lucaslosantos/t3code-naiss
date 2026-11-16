@@ -44,6 +44,12 @@ Revert the most recent customization's merge commit from `CUSTOMIZATIONS.md` (`g
 
 Run `~/projects/t3code-yours/scripts/yours/rollback.sh --detach`. It puts back the previous build. Then investigate why, fix it on `yours`, and rebuild.
 
+## Tooling notes
+
+- Use the repo's own `vp`: `export PATH="$PWD/node_modules/.bin:$PATH"` (a newer global `vp` refuses this repo).
+- Previewing from the main checkout (not a worktree): never plain `vp run dev`. Seed a copy first with `node apps/server/scripts/migrate-dev-db.ts --base-dir "$PWD/.t3"`, then `node scripts/dev-runner.ts dev --home-dir "$PWD/.t3"`. Thread worktrees get their own seeded `.t3` automatically.
+- The fork follows upstream `main`, which can be ahead of the official release. Its database migrations then land on the shared `~/.t3` data when the owner opens the app; `apply.sh` backs up first.
+
 ## Safety
 
 - Never write to `~/.t3/userdata`. `apply.sh` backs up the database to `~/.t3/backups/` before each install.
