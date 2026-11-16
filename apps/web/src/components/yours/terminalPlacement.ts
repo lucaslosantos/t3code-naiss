@@ -1,4 +1,4 @@
-import { parseScopedThreadKey, scopedThreadKey } from "@t3tools/client-runtime/environment";
+import { parseScopedThreadKey } from "@t3tools/client-runtime/environment";
 import type { ScopedThreadRef } from "@t3tools/contracts";
 import type { TerminalPlacement } from "@t3tools/contracts/settings";
 
@@ -8,18 +8,23 @@ import {
   subscribeClientSettings,
   updateClientSettings,
 } from "../../hooks/useSettings";
-import { focusActiveDrawerTerminal, focusActivePanelTerminal } from "../../lib/terminalFocus";
+import { focusActiveDrawerTerminal } from "../../lib/terminalFocus";
 import { selectThreadRightPanelState, useRightPanelStore } from "../../rightPanelStore";
 import { selectThreadTerminalUiState, useTerminalUiStateStore } from "../../terminalUiStateStore";
 import {
-  drawerTerminalGroupsForPanel,
-  panelTerminalGroupsForDrawer,
-  resolveRightPanelTerminalToggle,
-} from "./terminalPlacement.logic";
+  dockChangeWantsReveal,
+  panelClosedUnderOpenDock,
+  resolveRightDockToggle,
+} from "./rightTerminalDock.logic";
+import {
+  getRightTerminalDockLayout,
+  updateRightTerminalDockLayout,
+} from "./rightTerminalDockStore";
+import { panelTerminalGroupsForDrawer } from "./terminalPlacement.logic";
 
-// Moves only re-home terminal ids between the drawer and right-panel stores. Sessions are keyed
-// by thread and terminal id on the server, so the shell keeps running and the new viewport
-// reattaches to it.
+// Every placement shows the drawer's terminals: below the chat, portaled into the sidebar, or
+// portaled into the right panel's dock. Sessions are keyed by thread and terminal id on the
+// server, so a move only changes where the viewport mounts; the shell keeps running.
 
 let moving = false;
 
@@ -33,54 +38,14 @@ function withMoving(run: () => void): void {
   }
 }
 
-/** Turns the drawer's terminals into right-panel tabs. Returns whether there were any. */
-export function moveDrawerTerminalsToPanel(threadRef: ScopedThreadRef): boolean {
-  const drawer = selectThreadTerminalUiState(
-    useTerminalUiStateStore.getState().terminalUiStateByThreadKey,
-    threadRef,
-  );
-  if (drawer.terminalIds.length === 0) return false;
-  const { groups, activeIndex } = drawerTerminalGroupsForPanel(drawer);
-  const threadKey = scopedThreadKey(threadRef);
-  withMoving(() => {
-    // Keeps the drawer's height; closeTerminal would reset it and mark the ids closed.
-    useTerminalUiStateStore.setState((state) => {
-      const current = state.terminalUiStateByThreadKey[threadKey];
-      if (!current) return state;
-      return {
-        terminalUiStateByThreadKey: {
-          ...state.terminalUiStateByThreadKey,
-          [threadKey]: {
-            ...current,
-            terminalOpen: false,
-            terminalIds: [],
-            activeTerminalId: "",
-            terminalGroups: [],
-            activeTerminalGroupId: "",
-          },
-        },
-      };
-    });
-    const panels = useRightPanelStore.getState();
-    const surfaceIds = groups.map((group) => {
-      const [first, ...rest] = group.terminalIds;
-      const surfaceId = `terminal:${first!}`;
-      panels.openTerminal(threadRef, first!);
-      for (const terminalId of rest) {
-        panels.splitTerminal(threadRef, surfaceId, terminalId, group.splitDirection);
-      }
-      panels.activateTerminal(threadRef, surfaceId, group.activeTerminalId);
-      return surfaceId;
-    });
-    const activeSurfaceId = surfaceIds[activeIndex];
-    if (activeSurfaceId) panels.activateSurface(threadRef, activeSurfaceId);
-    panels.show(threadRef);
-  });
-  return true;
-}
-
-/** Turns the right panel's terminal tabs into open drawer terminals. Returns whether there were any. */
-export function movePanelTerminalsToDrawer(threadRef: ScopedThreadRef): boolean {
+/**
+ * Turns the right panel's terminal tabs into open drawer terminals. Returns whether there were
+ * any. `keepPanelOpen` keeps the panel showing when they were its last tabs, for the dock.
+ */
+export function movePanelTerminalsToDrawer(
+  threadRef: ScopedThreadRef,
+  options?: { readonly keepPanelOpen?: boolean },
+): boolean {
   const panel = selectThreadRightPanelState(useRightPanelStore.getState().byThreadKey, threadRef);
   const { groups, activeTerminalId } = panelTerminalGroupsForDrawer(
     panel.surfaces,
@@ -105,40 +70,48 @@ export function movePanelTerminalsToDrawer(threadRef: ScopedThreadRef): boolean 
     for (const surface of panel.surfaces) {
       if (surface.kind === "terminal") panels.closeSurface(threadRef, surface.id);
     }
+    if (options?.keepPanelOpen && panel.isOpen) showPanel(threadRef);
   });
   return true;
 }
 
-/**
- * Hides or shows the right panel's terminal. Returns false when the thread has no terminal tab
- * yet, so the caller opens one the usual way and the placement guard brings it over.
- */
-export function toggleRightPanelTerminal(threadRef: ScopedThreadRef): boolean {
+function showPanel(threadRef: ScopedThreadRef): void {
   const panels = useRightPanelStore.getState();
-  const action = resolveRightPanelTerminalToggle(
-    selectThreadRightPanelState(panels.byThreadKey, threadRef),
-  );
-  if (action.kind === "open") {
-    if (!moveDrawerTerminalsToPanel(threadRef)) return false;
-  } else if (action.kind === "hide") {
-    panels.close(threadRef);
-    return true;
-  } else {
-    panels.activateSurface(threadRef, action.surfaceId);
-    panels.show(threadRef);
-  }
-  focusActivePanelTerminal(threadRef);
-  return true;
+  // show() counts as a user action even when the panel is open, which holds back proactive tabs.
+  if (!selectThreadRightPanelState(panels.byThreadKey, threadRef).isOpen) panels.show(threadRef);
 }
 
-/** Whether the thread's right panel is open on a terminal tab. */
-export function isRightPanelTerminalShown(threadRef: ScopedThreadRef | null): boolean {
-  if (!threadRef) return false;
-  return (
-    resolveRightPanelTerminalToggle(
-      selectThreadRightPanelState(useRightPanelStore.getState().byThreadKey, threadRef),
-    ).kind === "hide"
+/** Opens the right panel, if needed, and unfolds the dock. */
+function revealDock(threadRef: ScopedThreadRef): void {
+  showPanel(threadRef);
+  updateRightTerminalDockLayout({ collapsed: false });
+}
+
+/**
+ * The terminal toggle while the terminal is docked on the right. Returns false when the thread
+ * has no open terminal yet, so the caller opens one the usual way and the guard reveals the dock.
+ */
+export function toggleRightDockTerminal(threadRef: ScopedThreadRef): boolean {
+  const panel = selectThreadRightPanelState(useRightPanelStore.getState().byThreadKey, threadRef);
+  const drawer = selectThreadTerminalUiState(
+    useTerminalUiStateStore.getState().terminalUiStateByThreadKey,
+    threadRef,
   );
+  const action = resolveRightDockToggle({
+    panelOpen: panel.isOpen,
+    terminalOpen: drawer.terminalOpen,
+    collapsed: getRightTerminalDockLayout().collapsed,
+    hasOtherSurfaces: panel.surfaces.length > 0,
+  });
+  if (action.kind === "open") return false;
+  if (action.kind === "reveal") {
+    revealDock(threadRef);
+    focusActiveDrawerTerminal(threadRef);
+    return true;
+  }
+  withMoving(() => useTerminalUiStateStore.getState().setTerminalOpen(threadRef, false));
+  if (action.closePanel) useRightPanelStore.getState().close(threadRef);
+  return true;
 }
 
 /**
@@ -151,50 +124,74 @@ export function setTerminalPlacement(
   threadRef: ScopedThreadRef | null,
   from: TerminalPlacement = getClientSettings().terminalPlacement,
 ): void {
-  const previous = from;
   if (getClientSettings().terminalPlacement !== next) {
     void updateClientSettings({ terminalPlacement: next });
   }
-  if (!threadRef || previous === next) return;
-  if (next === "right") {
-    if (moveDrawerTerminalsToPanel(threadRef)) focusActivePanelTerminal(threadRef);
-    return;
-  }
-  if (previous === "right") movePanelTerminalsToDrawer(threadRef);
-  // Before settings hydrate the saved placement can still read "right"; keep the guard out.
+  if (!threadRef || from === next) return;
+  // Docked terminals already live in the drawer; only loose panel tabs need carrying.
+  if (from === "right") movePanelTerminalsToDrawer(threadRef);
+  // Before settings save, the guard still reads the old placement; keep it out.
   withMoving(() => useTerminalUiStateStore.getState().setTerminalOpen(threadRef, true));
+  if (next === "right") revealDock(threadRef);
   focusActiveDrawerTerminal(threadRef);
 }
 
-/**
- * With the terminal on the right, anything that opens the drawer (scripts, chat code blocks,
- * setup terminal links) lands in the right panel instead. Opening runs synchronously in store
- * updates, so this follows the store rather than a render.
- */
-function adoptOpenDrawersIntoPanel(): void {
+function guardActive(): boolean {
   // Until saved settings load, the placement reads as the default and could misplace terminals.
-  if (moving || !isClientSettingsHydrated() || getClientSettings().terminalPlacement !== "right") {
-    return;
-  }
-  const byThreadKey = useTerminalUiStateStore.getState().terminalUiStateByThreadKey;
+  return !moving && isClientSettingsHydrated() && getClientSettings().terminalPlacement === "right";
+}
+
+/** Terminal tabs added to the right panel (or kept from before the dock) move into the dock. */
+function adoptPanelTerminalsIntoDock(): void {
+  if (!guardActive()) return;
+  const byThreadKey = useRightPanelStore.getState().byThreadKey;
   for (const [threadKey, state] of Object.entries(byThreadKey)) {
-    if (!state.terminalOpen) continue;
+    if (!state.surfaces.some((surface) => surface.kind === "terminal")) continue;
     const threadRef = parseScopedThreadKey(threadKey);
-    if (threadRef) moveDrawerTerminalsToPanel(threadRef);
+    if (threadRef && movePanelTerminalsToDrawer(threadRef, { keepPanelOpen: true })) {
+      updateRightTerminalDockLayout({ collapsed: false });
+    }
   }
 }
 
+const CLOSED_EMPTY_PANEL = { isOpen: false, surfaces: [] } as const;
+
 let guardInstalled = false;
 
-/** Idempotent; ChatView installs it once so the placement holds for every opening path. */
+/**
+ * Idempotent; ChatView installs it once so the dock holds for every opening path (toggle,
+ * shortcuts, scripts, chat code blocks, setup terminal links, the panel's own "Terminal" tab).
+ * Opening runs synchronously in store updates, so this follows the stores rather than a render.
+ */
 export function installTerminalPlacementGuard(): void {
   if (guardInstalled) return;
   guardInstalled = true;
   useTerminalUiStateStore.subscribe((state, previous) => {
-    if (state.terminalUiStateByThreadKey !== previous.terminalUiStateByThreadKey) {
-      adoptOpenDrawersIntoPanel();
+    if (state.terminalUiStateByThreadKey === previous.terminalUiStateByThreadKey) return;
+    if (!guardActive()) return;
+    for (const [threadKey, next] of Object.entries(state.terminalUiStateByThreadKey)) {
+      const before = previous.terminalUiStateByThreadKey[threadKey];
+      if (next === before || !dockChangeWantsReveal(before, next)) continue;
+      const threadRef = parseScopedThreadKey(threadKey);
+      if (threadRef) revealDock(threadRef);
     }
   });
-  subscribeClientSettings(adoptOpenDrawersIntoPanel);
-  adoptOpenDrawersIntoPanel();
+  useRightPanelStore.subscribe((state, previous) => {
+    if (state.byThreadKey === previous.byThreadKey) return;
+    adoptPanelTerminalsIntoDock();
+    if (!guardActive()) return;
+    const terminals = useTerminalUiStateStore.getState().terminalUiStateByThreadKey;
+    // An emptied, closed panel drops its entry, so look at the threads that had one.
+    for (const [threadKey, before] of Object.entries(previous.byThreadKey)) {
+      const next = state.byThreadKey[threadKey] ?? CLOSED_EMPTY_PANEL;
+      if (next === before) continue;
+      if (!panelClosedUnderOpenDock(before, next, terminals[threadKey]?.terminalOpen === true)) {
+        continue;
+      }
+      const threadRef = parseScopedThreadKey(threadKey);
+      if (threadRef) withMoving(() => useRightPanelStore.getState().show(threadRef));
+    }
+  });
+  subscribeClientSettings(adoptPanelTerminalsIntoDock);
+  adoptPanelTerminalsIntoDock();
 }

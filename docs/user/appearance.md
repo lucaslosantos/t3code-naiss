@@ -32,10 +32,17 @@ applies to the web and desktop clients.
 ## Terminal position
 
 On web and desktop, choose where the thread terminal opens with **Terminal position** in
-**Settings → Appearance**: the right panel (default), the bottom of the chat, or the sidebar below
-the thread list. The terminal's own **Move terminal** button and the command palette's **Move
-terminal to …** actions switch it in one step without restarting the shell. In the sidebar, drag
-the divider to resize the terminal and double-click it to reset.
+**Settings → Appearance**: docked at the bottom of the right panel (default), the bottom of the
+chat, or the sidebar below the thread list. The terminal's own **Move terminal** button and the
+command palette's **Move terminal to …** actions switch it in one step without restarting the
+shell. In the right panel and the sidebar, drag the divider to resize the terminal and
+double-click it to reset.
+
+In the right panel, the terminal has its own row of tabs under the panel's other tabs. The
+chevron folds it down to that row, and it takes the whole panel when no other tab is open.
+**Run** starts the project's main script in a **Run** tab, and its menu lists the other project
+scripts; while a script runs there, the button stops it. Project scripts started from the thread
+details or a shortcut also use the Run tab.
 
 ## Math
 

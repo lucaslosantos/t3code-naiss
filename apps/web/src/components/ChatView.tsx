@@ -380,6 +380,7 @@ import { observeResize } from "~/lib/observeResize";
 import { ThreadVisitWatermark } from "./chat/ThreadVisitWatermark";
 import { ChatTerminalDrawers } from "./chat/ChatTerminalDrawers";
 import { ChatRightPanel } from "./chat/ChatRightPanel";
+import { useRightTerminalDock } from "./yours/RightTerminalDock";
 import { useDraftEnvironmentRouting } from "./chat/useDraftEnvironmentRouting";
 import { branchMismatchBannerItem, extensionStatusBannerItem } from "./chat/ThreadActivityBanners";
 import { ThreadNow } from "./chat/ThreadNow";
@@ -1953,6 +1954,15 @@ export default function ChatView(props: ChatViewProps) {
     setThreadError,
     terminalPlacement,
   });
+  const terminalDock = useRightTerminalDock({
+    threadRef: activeThreadRef,
+    hasSurfaces: renderedRightPanelSurfaces.length > 0,
+    scripts: activeProjectScripts,
+    preferredScriptId: activeProject
+      ? (lastInvokedScriptByProjectId[activeProject.id] ?? null)
+      : null,
+    onRunScript: runProjectScriptStable,
+  });
   const {
     saveProjectScript: saveProjectScriptStable,
     updateProjectScript: updateProjectScriptStable,
@@ -3290,7 +3300,7 @@ export default function ChatView(props: ChatViewProps) {
     terminalAvailable: activeProject !== null,
     terminalOpen:
       terminalPlacement === "right"
-        ? rightPanelOpen && activeRightPanelSurface?.kind === "terminal"
+        ? rightPanelOpen && terminalUiState.terminalOpen
         : terminalUiState.terminalOpen,
     terminalShortcutLabel: shortcutLabelForCommand(keybindings, "terminal.toggle"),
     threadPanelOpen,
@@ -4052,6 +4062,8 @@ export default function ChatView(props: ChatViewProps) {
           deviceAvailable={activeThreadRef !== null}
           sideChatAvailable={sideChat.available}
           sideChatDisabledReason={sideChatDisabledReason}
+          bottomDock={terminalDock.element}
+          bottomDockFills={terminalDock.fills}
         >
           {rightPanelContent}
         </ChatRightPanel>
