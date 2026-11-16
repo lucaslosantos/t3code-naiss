@@ -225,6 +225,8 @@ export interface FakeThread {
   readonly olderSettled?: true;
   readonly id: ThreadId;
   readonly title: string;
+  /** Fork-only: spawned as a subagent of this thread. */
+  readonly subagentOf?: ThreadId;
   /** Defaults to GPT-5.4 on Codex. */
   readonly modelSelection?: ModelSelection;
   /** The first is the thread's active provider thread. */
@@ -317,9 +319,9 @@ function shellOf(thread: FakeThread): OrchestrationV2ThreadShell {
     worktreePath: null,
     activeProviderThreadId: thread.providerThreads?.[0]?.id ?? null,
     lineage: {
-      rootThreadId: thread.sideChatOf ?? thread.id,
-      parentThreadId: thread.sideChatOf ?? null,
-      relationshipToParent: null,
+      rootThreadId: thread.sideChatOf ?? thread.subagentOf ?? thread.id,
+      parentThreadId: thread.sideChatOf ?? thread.subagentOf ?? null,
+      relationshipToParent: thread.subagentOf ? "subagent" : null,
       ...(thread.sideChatOf ? { sideChat: true } : {}),
     },
     forkedFrom: null,

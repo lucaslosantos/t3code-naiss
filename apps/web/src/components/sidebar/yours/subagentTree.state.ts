@@ -28,6 +28,18 @@ const subagentTreeAtomFamily = Atom.family((parentKey: string) => {
   }).pipe(Atom.withLabel(`sidebar-subagent-tree:${parentKey}`));
 });
 
+const hasSubagentsAtomFamily = Atom.family((parentKey: string) =>
+  Atom.make((get) => get(subagentTreeAtomFamily(parentKey)).length > 0).pipe(
+    Atom.withLabel(`sidebar-has-subagents:${parentKey}`),
+  ),
+);
+const NEVER_HAS_SUBAGENTS = Atom.make(false).pipe(Atom.withLabel("sidebar-has-subagents:off"));
+
+/** Whether a row has children to frame; a boolean, so rows re-render only when that flips. */
+export function useHasSubagents(parentKey: string, enabled: boolean): boolean {
+  return useAtomValue(enabled ? hasSubagentsAtomFamily(parentKey) : NEVER_HAS_SUBAGENTS);
+}
+
 export function useSubagentTree(parentKey: string): ReadonlyArray<SubagentNode> {
   return useAtomValue(subagentTreeAtomFamily(parentKey));
 }
