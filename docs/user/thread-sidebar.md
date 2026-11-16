@@ -175,10 +175,12 @@ it. Sections are kept on the device where you made them.
 
 ### Subagents in the sidebar
 
-On web and desktop, threads that started subagents or delegated tasks show a count under
-their row. Click it to see each child with its status, nested as deep as they go, and click
-a child to open it. The list opens on its own while a child is working, until you open or
-close it yourself. Turn this off in **Settings → General → Show subagents in sidebar**.
+On web and desktop, threads that started subagents or delegated tasks show a count inside
+their card; while it is closed, small status icons sum up what the children are doing. Click
+it to see each child with the same status a thread card shows, or how long ago it ran, nested
+as deep as they go, and click a child to open it. The list opens on its own while a child is
+working, until you open or close it yourself. Turn this off in
+**Settings → General → Show subagents in sidebar**.
 
 ## Settle finished work
 

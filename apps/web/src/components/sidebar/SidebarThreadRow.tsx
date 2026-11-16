@@ -86,6 +86,7 @@ import {
   hasUnseenCompletion,
   resolveSidebarRowAccessibility,
   type SidebarDropVerb,
+  type SidebarThreadStatus,
   resolveSidebarRowStatus,
   resolveThreadLastVisitedAt,
   shouldRecedeSidebarThread,
@@ -118,7 +119,7 @@ import { shouldShowInstanceBadge, type ProviderInstanceEntry } from "../../provi
 import { useThreadRunningTerminalIds } from "../../state/terminalSessions";
 import { InlineButton } from "../ui/button";
 import { Kbd } from "../ui/kbd";
-import { SidebarSubagentTree } from "./yours/SidebarSubagentTree";
+import { SidebarSubagentTree, useSubagentCardClassName } from "./yours/SidebarSubagentTree";
 import { Menu, MenuItem, MenuItemDetail, MenuPopup, MenuSeparator, MenuTrigger } from "../ui/menu";
 import { Tooltip, TooltipPopup, TooltipTrigger } from "../ui/tooltip";
 import { MiddleTruncate } from "../ui/middle-truncate";
@@ -165,7 +166,7 @@ function JumpHintBadge(props: { label: string }) {
 const JUMP_HINT_SLOT_CLASS_NAME =
   "[&>:not([data-jump-hint])]:invisible [&>:not([data-jump-hint])]:absolute";
 
-function WorkingDuration(props: { environmentId: EnvironmentId; startedAt: string | null }) {
+export function WorkingDuration(props: { environmentId: EnvironmentId; startedAt: string | null }) {
   const startedMs = props.startedAt !== null ? Date.parse(props.startedAt) : Number.NaN;
   if (Number.isNaN(startedMs)) return null;
   return <WorkingDurationLabel environmentId={props.environmentId} startedMs={startedMs} />;
@@ -541,9 +542,79 @@ const TOP_STATUS_ICONS = {
   woke: AlarmClockIcon,
 } as const;
 
-function TopStatusIcon(props: { icon: keyof typeof TOP_STATUS_ICONS; className: string }) {
+export function TopStatusIcon(props: { icon: keyof typeof TOP_STATUS_ICONS; className: string }) {
   const Icon = TOP_STATUS_ICONS[props.icon];
   return <Icon aria-hidden className={cn("shrink-0", props.className)} />;
+}
+
+export type SidebarTopStatus = {
+  label: string;
+  icon: keyof typeof TOP_STATUS_ICONS;
+  className: string;
+};
+
+/** The card's status slot. Fork-only: shared with nested subagent rows. */
+export function resolveSidebarTopStatus(input: {
+  status: SidebarThreadStatus;
+  goalActive: boolean;
+  isWoke: boolean;
+  isUnread: boolean;
+}): SidebarTopStatus | null {
+  return input.status === "preparing" || input.status === "working"
+    ? {
+        label: input.status === "preparing" ? "Setting up" : input.goalActive ? "Goal" : "Working",
+        icon: "working" as const,
+        className: "text-info-foreground",
+      }
+    : input.status === "waiting"
+      ? {
+          label: "Waiting",
+          icon: "waiting" as const,
+          className: "text-muted-foreground",
+        }
+      : input.status === "approval"
+        ? {
+            label: "Approval",
+            icon: "approval" as const,
+            className: "text-warning-foreground",
+          }
+        : input.status === "input"
+          ? {
+              label: "Input",
+              icon: "input" as const,
+              className: "text-indigo-600 dark:text-indigo-300",
+            }
+          : input.status === "request"
+            ? {
+                label: "Request",
+                icon: "request" as const,
+                className: "text-guest-foreground",
+              }
+            : input.status === "limited"
+              ? {
+                  label: "Limited",
+                  icon: "failed" as const,
+                  className: "text-warning-foreground",
+                }
+              : input.status === "failed"
+                ? {
+                    label: "Failed",
+                    icon: "failed" as const,
+                    className: "text-error-foreground",
+                  }
+                : input.isWoke
+                  ? {
+                      label: "Woke",
+                      icon: "woke" as const,
+                      className: "text-warning-foreground",
+                    }
+                  : input.isUnread
+                    ? {
+                        label: "Done",
+                        icon: "done" as const,
+                        className: "text-success-foreground",
+                      }
+                    : null;
 }
 
 type SidebarThreadRowProps = {
@@ -747,67 +818,12 @@ const SidebarThreadRow = memo(function SidebarThreadRow(props: SidebarThreadRowP
     isActive: props.isActive,
     isSelected,
   });
-  const topStatus =
-    status === "preparing" || status === "working"
-      ? {
-          label:
-            status === "preparing"
-              ? "Setting up"
-              : thread.goal?.status === "active"
-                ? "Goal"
-                : "Working",
-          icon: "working" as const,
-          className: "text-info-foreground",
-        }
-      : status === "waiting"
-        ? {
-            label: "Waiting",
-            icon: "waiting" as const,
-            className: "text-muted-foreground",
-          }
-        : status === "approval"
-          ? {
-              label: "Approval",
-              icon: "approval" as const,
-              className: "text-warning-foreground",
-            }
-          : status === "input"
-            ? {
-                label: "Input",
-                icon: "input" as const,
-                className: "text-indigo-600 dark:text-indigo-300",
-              }
-            : status === "request"
-              ? {
-                  label: "Request",
-                  icon: "request" as const,
-                  className: "text-guest-foreground",
-                }
-              : status === "limited"
-                ? {
-                    label: "Limited",
-                    icon: "failed" as const,
-                    className: "text-warning-foreground",
-                  }
-                : status === "failed"
-                  ? {
-                      label: "Failed",
-                      icon: "failed" as const,
-                      className: "text-error-foreground",
-                    }
-                  : isWoke
-                    ? {
-                        label: "Woke",
-                        icon: "woke" as const,
-                        className: "text-warning-foreground",
-                      }
-                    : isUnread
-                      ? {
-                          label: "Done",
-                          icon: "done" as const,
-                          className: "text-success-foreground",
-                        }
-                      : null;
+  const topStatus = resolveSidebarTopStatus({
+    status,
+    goalActive: thread.goal?.status === "active",
+    isWoke,
+    isUnread,
+  });
   const isWokeStatus = topStatus?.icon === "woke";
 
   const branchMismatch = resolveLocalCheckoutBranchMismatch({
@@ -997,6 +1013,15 @@ const SidebarThreadRow = memo(function SidebarThreadRow(props: SidebarThreadRowP
       "bg-sidebar bg-linear-to-b from-sidebar-row-active to-sidebar-row-active text-sidebar-foreground opacity-100 shadow-lg",
   );
   const sortable = props.sortable;
+  // Fork-only: a row with subagents shares one card surface with its nested tree.
+  const subagentCardClassName = useSubagentCardClassName(threadKey, {
+    variant: variant === "card" ? "card" : "row",
+    active: props.isActive,
+    selected: isSelected || props.sweepAction !== null,
+    draft: hasUnsentDraft,
+    dragging: sortable?.isDragging === true,
+    fileDragOver: isFileDragOver,
+  });
   const sortableRootProps = sortable
     ? {
         ref: sortable.setNodeRef,
@@ -1230,6 +1255,7 @@ const SidebarThreadRow = memo(function SidebarThreadRow(props: SidebarThreadRowP
           "list-none [content-visibility:auto] [contain-intrinsic-size:auto_--spacing(9)]",
           metaLine !== null && multiline && "[contain-intrinsic-size:auto_--spacing(13.5)]",
           sortable?.isDragging && "relative z-20",
+          subagentCardClassName,
         )}
       >
         <Tooltip disabled={isRenaming || sortable?.isDragging}>
@@ -1412,7 +1438,11 @@ const SidebarThreadRow = memo(function SidebarThreadRow(props: SidebarThreadRowP
           </TooltipTrigger>
           {detailsTooltip}
         </Tooltip>
-        <SidebarSubagentTree parentKey={threadKey} onActivate={onThreadActivate} />
+        <SidebarSubagentTree
+          parentKey={threadKey}
+          onActivate={onThreadActivate}
+          inset={inFolder ? "folder" : "row"}
+        />
       </li>
     );
   }
@@ -1428,6 +1458,7 @@ const SidebarThreadRow = memo(function SidebarThreadRow(props: SidebarThreadRowP
         "list-none py-0.5 [content-visibility:auto] [contain-intrinsic-size:auto_78px]",
         metaLineEmpty && "[contain-intrinsic-size:auto_60px]",
         sortable?.isDragging && "relative z-20",
+        subagentCardClassName,
       )}
     >
       <Tooltip disabled={isRenaming || snoozeMenuOpen || sortable?.isDragging}>
@@ -1622,7 +1653,7 @@ const SidebarThreadRow = memo(function SidebarThreadRow(props: SidebarThreadRowP
         </TooltipTrigger>
         {detailsTooltip}
       </Tooltip>
-      <SidebarSubagentTree parentKey={threadKey} onActivate={onThreadActivate} />
+      <SidebarSubagentTree parentKey={threadKey} onActivate={onThreadActivate} inset="card" />
     </li>
   );
 });

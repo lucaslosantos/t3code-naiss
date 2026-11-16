@@ -24,9 +24,10 @@ function thread(
     sideChat?: boolean;
     environmentId?: EnvironmentId;
     delegatedFrom?: { environmentId: EnvironmentId; threadId: string };
-    status?: "running" | "failed" | "completed";
+    status?: "running" | "failed" | "completed" | "idle";
     approval?: boolean;
     archived?: boolean;
+    sentAt?: string;
   } = {},
 ): Fixture {
   const environmentId = overrides.environmentId ?? LOCAL;
@@ -55,6 +56,7 @@ function thread(
       overrides.status === undefined ? null : ({ status: "completed" } as Fixture["latestRun"]),
     hasPendingApprovals: overrides.approval === true,
     hasPendingUserInput: false,
+    latestUserMessageAt: overrides.sentAt ?? null,
   } as Fixture;
 }
 
@@ -87,6 +89,24 @@ describe("buildSubagentTree", () => {
     ]);
     expect(countSubagents(tree)).toBe(3);
     expect(subagentTreeContains(tree, key("a1"))).toBe(true);
+  });
+
+  it("carries the card's status and when a wait began", () => {
+    const parked = thread("a", { parent: "root", status: "idle" });
+    const tree = treeOf(
+      [
+        {
+          ...parked,
+          latestRun: { status: "completed", completedAt: "2026-11-16T10:00:00.000Z" },
+        } as Fixture,
+      ],
+      "root",
+    );
+    expect(tree[0]).toMatchObject({
+      status: "idle",
+      rowStatus: "waiting",
+      since: "2026-11-16T10:00:00.000Z",
+    });
   });
 
   it("marks an ancestor working when only a grandchild works", () => {
@@ -122,6 +142,11 @@ describe("buildSubagentTree", () => {
     expect(sameSubagentTree(treeOf(threads, "root"), treeOf(threads, "root"))).toBe(true);
     const finished = [thread("a", { parent: "root", status: "completed" })];
     expect(sameSubagentTree(treeOf(threads, "root"), treeOf(finished, "root"))).toBe(false);
+    const sent = [
+      thread("a", { parent: "root", status: "running", sentAt: "2026-11-16T10:00:00.000Z" }),
+    ];
+    expect(treeOf(sent, "root")[0]!.activityAt).toBe("2026-11-16T10:00:00.000Z");
+    expect(sameSubagentTree(treeOf(threads, "root"), treeOf(sent, "root"))).toBe(false);
   });
 });
 

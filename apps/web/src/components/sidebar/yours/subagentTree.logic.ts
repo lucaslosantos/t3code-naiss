@@ -1,8 +1,15 @@
 import { scopedThreadKey, scopeThreadRef } from "@t3tools/client-runtime/environment";
+import { resolveThreadActivityTimestamp } from "@t3tools/client-runtime/state/thread-sort";
 import type { EnvironmentThreadShell } from "@t3tools/client-runtime/state/models";
 import type { ScopedThreadRef } from "@t3tools/contracts";
 
-import { resolveSidebarThreadStatus } from "../../Sidebar.logic";
+import {
+  hasUnseenCompletion,
+  resolveSidebarRowStatus,
+  resolveSidebarThreadStatus,
+  resolveWorkingStartedAt,
+  type SidebarThreadStatus,
+} from "../../Sidebar.logic";
 
 export type SubagentStatus = "working" | "attention" | "failed" | "done" | "idle";
 
@@ -11,6 +18,15 @@ export interface SubagentNode {
   readonly ref: ScopedThreadRef;
   readonly title: string;
   readonly status: SubagentStatus;
+  /** The row status a thread card would show, so children speak the card's status language. */
+  readonly rowStatus: SidebarThreadStatus;
+  /** A finished run the user has not opened yet ("Done"). */
+  readonly unread: boolean;
+  readonly goalActive: boolean;
+  /** When the current working or waiting stretch began, for "Working 2m" / "Waiting 5m". */
+  readonly since: string | null;
+  /** Last send or run time, shown when the status has nothing to say. */
+  readonly activityAt: string | null;
   readonly children: ReadonlyArray<SubagentNode>;
   /** Whether this node or anything below it is working. */
   readonly working: boolean;
@@ -33,6 +49,12 @@ type LineageThread = Pick<
   | "pendingGuestMessageCount"
   | "blockedOnThreadWait"
   | "latestRun"
+  | "latestUserMessageAt"
+  | "updatedAt"
+  | "lastVisitedAt"
+  | "goal"
+  | "interactionMode"
+  | "hasActionableProposedPlan"
 >;
 
 function subagentStatus(thread: LineageThread): SubagentStatus {
@@ -115,11 +137,22 @@ export function buildSubagentTree(
     seen.add(key);
     const grandchildren = buildSubagentTree(index, key, seen);
     const status = subagentStatus(thread);
+    const rowStatus = resolveSidebarRowStatus(thread);
     nodes.push({
       key,
       ref,
       title: thread.title,
       status,
+      rowStatus,
+      unread: hasUnseenCompletion(thread),
+      goalActive: thread.goal?.status === "active",
+      since:
+        rowStatus === "preparing" || rowStatus === "working"
+          ? resolveWorkingStartedAt(thread)
+          : rowStatus === "waiting"
+            ? (thread.latestRun?.completedAt ?? null)
+            : null,
+      activityAt: resolveThreadActivityTimestamp(thread),
       children: grandchildren,
       working: status === "working" || grandchildren.some((child) => child.working),
     });
@@ -145,6 +178,11 @@ export function sameSubagentTree(
           node.key === other.key &&
           node.title === other.title &&
           node.status === other.status &&
+          node.rowStatus === other.rowStatus &&
+          node.unread === other.unread &&
+          node.goalActive === other.goalActive &&
+          node.since === other.since &&
+          node.activityAt === other.activityAt &&
           node.working === other.working &&
           sameSubagentTree(node.children, other.children)
         );
