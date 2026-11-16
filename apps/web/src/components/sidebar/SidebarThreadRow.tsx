@@ -118,6 +118,7 @@ import { shouldShowInstanceBadge, type ProviderInstanceEntry } from "../../provi
 import { useThreadRunningTerminalIds } from "../../state/terminalSessions";
 import { InlineButton } from "../ui/button";
 import { Kbd } from "../ui/kbd";
+import { SidebarSubagentTree } from "./yours/SidebarSubagentTree";
 import { Menu, MenuItem, MenuItemDetail, MenuPopup, MenuSeparator, MenuTrigger } from "../ui/menu";
 import { Tooltip, TooltipPopup, TooltipTrigger } from "../ui/tooltip";
 import { MiddleTruncate } from "../ui/middle-truncate";
@@ -1411,6 +1412,7 @@ const SidebarThreadRow = memo(function SidebarThreadRow(props: SidebarThreadRowP
           </TooltipTrigger>
           {detailsTooltip}
         </Tooltip>
+        <SidebarSubagentTree parentKey={threadKey} onActivate={onThreadActivate} />
       </li>
     );
   }
@@ -1620,6 +1622,7 @@ const SidebarThreadRow = memo(function SidebarThreadRow(props: SidebarThreadRowP
         </TooltipTrigger>
         {detailsTooltip}
       </Tooltip>
+      <SidebarSubagentTree parentKey={threadKey} onActivate={onThreadActivate} />
     </li>
   );
 });
