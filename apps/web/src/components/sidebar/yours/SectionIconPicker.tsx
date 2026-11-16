@@ -7,11 +7,11 @@ import { SearchIcon } from "lucide-react";
 import { type RefObject, useState } from "react";
 
 import { cn } from "~/lib/utils";
-import { Input } from "../../ui/input";
 import { InputGroup, InputGroupAddon, InputGroupInput } from "../../ui/input-group";
 import { Popover, PopoverPopup, PopoverTrigger } from "../../ui/popover";
 import { Toggle, ToggleGroup } from "../../ui/toggle-group";
 import { normalizeSectionColor } from "./customSections.logic";
+import { searchSectionEmoji } from "./sectionEmoji.logic";
 import { SECTION_ICON_COMPONENTS } from "./sectionIcons";
 import {
   parseSingleEmoji,
@@ -207,7 +207,7 @@ function SectionIconPanel(props: {
       {tab === "icons" ? (
         <IconGrid section={section} icon={icon} chipClassName={styles.chip} />
       ) : (
-        <EmojiField section={section} icon={icon} chipClassName={styles.chip} />
+        <EmojiGrid section={section} icon={icon} chipClassName={styles.chip} />
       )}
     </div>
   );
@@ -278,54 +278,64 @@ function IconGrid(props: {
   );
 }
 
-function EmojiField(props: {
+function EmojiGrid(props: {
   section: SidebarCustomSection;
   icon: ResolvedSectionIcon;
   chipClassName: string;
 }) {
   const { section, icon } = props;
-  const [draft, setDraft] = useState(icon.kind === "emoji" ? icon.value : "");
-  const parsed = parseSingleEmoji(draft);
-  const invalid = draft.trim() !== "" && parsed === null;
+  const [query, setQuery] = useState("");
+  // A pasted emoji (any emoji, not just the catalog's) is picked straight away.
+  const pasted = parseSingleEmoji(query);
+  const matches = searchSectionEmoji(query);
+  const shown = pasted !== null && !matches.includes(pasted) ? [pasted, ...matches] : matches;
   return (
     <div className="flex flex-col gap-2">
-      <div className="flex items-center gap-2">
-        <span
-          aria-hidden
-          className={cn(
-            "flex size-7.5 shrink-0 items-center justify-center rounded-md text-base leading-none",
-            parsed === null ? "bg-accent text-muted-foreground" : props.chipClassName,
-          )}
-        >
-          {parsed ?? "?"}
-        </span>
-        <Input
-          nativeInput
+      <InputGroup>
+        <InputGroupAddon>
+          <SearchIcon aria-hidden className="size-3" />
+        </InputGroupAddon>
+        <InputGroupInput
           autoFocus
-          size="compact"
-          value={draft}
-          placeholder="Type or paste an emoji"
-          aria-label="Emoji"
-          aria-invalid={invalid}
+          size="sm"
+          type="search"
+          value={query}
+          placeholder="Search or paste an emoji"
+          aria-label="Search emoji"
           spellCheck={false}
-          onFocus={(event) => event.currentTarget.select()}
           onChange={(event) => {
             const value = event.currentTarget.value;
-            setDraft(value);
+            setQuery(value);
             const emoji = parseSingleEmoji(value);
             if (emoji !== null)
               sectionDefinitions.setIcon(section.id, { kind: "emoji", value: emoji });
           }}
         />
+      </InputGroup>
+      <div className="-mx-1 grid max-h-52 grid-cols-8 gap-0.5 overflow-y-auto px-1">
+        {shown.map((emoji) => {
+          const selected = icon.kind === "emoji" && icon.value === emoji;
+          return (
+            <button
+              key={emoji}
+              type="button"
+              aria-label={emoji}
+              aria-pressed={selected}
+              onClick={() =>
+                sectionDefinitions.setIcon(section.id, { kind: "emoji", value: emoji })
+              }
+              className={cn(CELL, "text-base leading-none", selected && props.chipClassName)}
+            >
+              <span aria-hidden>{emoji}</span>
+            </button>
+          );
+        })}
+        {shown.length === 0 ? (
+          <p className="col-span-8 py-4 text-center text-xs text-muted-foreground">
+            No match. Paste any emoji to use it.
+          </p>
+        ) : null}
       </div>
-      <p
-        className={cn(
-          "px-0.5 text-xs",
-          invalid ? "text-destructive-foreground" : "text-muted-foreground",
-        )}
-      >
-        {invalid ? "Just one emoji." : "Any single emoji works. It takes the section's tint."}
-      </p>
     </div>
   );
 }
