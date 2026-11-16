@@ -4,7 +4,7 @@ import { CSS } from "@dnd-kit/utilities";
 import { settlePromise } from "@t3tools/client-runtime/state/runtime";
 import { SIDEBAR_SECTION_COLORS } from "@t3tools/contracts";
 import { ChevronDownIcon, EllipsisIcon, PlusIcon } from "lucide-react";
-import { type ReactNode, useRef, type KeyboardEvent as ReactKeyboardEvent } from "react";
+import { type ReactNode, useRef, useState, type KeyboardEvent as ReactKeyboardEvent } from "react";
 
 import { readLocalApi } from "~/localApi";
 import { cn } from "~/lib/utils";
@@ -17,34 +17,14 @@ import {
   normalizeSectionColor,
   sidebarSectionDropId,
 } from "./customSections.logic";
+import { SECTION_COLOR_STYLES, SectionGlyph, SectionIconPicker } from "./SectionIconPicker";
+import { resolveSectionIcon } from "./sectionIcons.logic";
 import {
   sectionDefinitions,
   type SectionThread,
   useSectionMembership,
   useSectionRenameStore,
 } from "./useCustomSections";
-
-const SECTION_COLOR_DOT = {
-  gray: "bg-sidebar-muted-foreground/60",
-  blue: "bg-blue-500",
-  green: "bg-emerald-500",
-  yellow: "bg-amber-400",
-  orange: "bg-orange-500",
-  red: "bg-red-500",
-  purple: "bg-violet-500",
-  pink: "bg-pink-500",
-} as const satisfies Record<(typeof SIDEBAR_SECTION_COLORS)[number], string>;
-
-const COLOR_LABEL = {
-  gray: "Gray",
-  blue: "Blue",
-  green: "Green",
-  yellow: "Yellow",
-  orange: "Orange",
-  red: "Red",
-  purple: "Purple",
-  pink: "Pink",
-} as const satisfies Record<(typeof SIDEBAR_SECTION_COLORS)[number], string>;
 
 export interface RenderedSectionGroup<T> extends CustomSectionGroup<T> {
   /** Every thread in the section; `threads` drops the hidden ones while it is collapsed. */
@@ -108,8 +88,11 @@ function CustomSection<T extends SectionThread>(props: {
   const renaming = useSectionRenameStore((state) => state.renamingId === section.id);
   const setRenamingId = useSectionRenameStore((state) => state.setRenamingId);
   const menuButtonRef = useRef<HTMLButtonElement | null>(null);
+  const iconButtonRef = useRef<HTMLButtonElement | null>(null);
+  const [pickerOpen, setPickerOpen] = useState(false);
   const rowId = `section:${section.id}`;
   const color = normalizeSectionColor(section.color);
+  const styles = SECTION_COLOR_STYLES[color];
 
   const openMenu = (position: { x: number; y: number }) => {
     const api = readLocalApi();
@@ -119,12 +102,13 @@ function CustomSection<T extends SectionThread>(props: {
         api.contextMenu.show(
           [
             { id: "rename", label: "Rename section", icon: "pencil" },
+            { id: "icon", label: "Icon…" },
             {
               id: "color",
               label: "Color",
               children: SIDEBAR_SECTION_COLORS.map((option) => ({
                 id: `color:${option}`,
-                label: COLOR_LABEL[option],
+                label: SECTION_COLOR_STYLES[option].label,
                 checked: option === color,
               })),
             },
@@ -153,6 +137,9 @@ function CustomSection<T extends SectionThread>(props: {
         case "rename":
           setRenamingId(section.id);
           return;
+        case "icon":
+          setPickerOpen(true);
+          return;
         case "move-up":
           sectionDefinitions.move(section.id, -1);
           return;
@@ -177,14 +164,14 @@ function CustomSection<T extends SectionThread>(props: {
       ref={setNodeRef}
       data-testid="sidebar-custom-section"
       className={cn(
-        "group/custom-section relative list-none rounded-md",
-        highlighted && "bg-primary/5 ring-1 ring-inset ring-primary/40",
+        "group/custom-section relative list-none rounded-md before:pointer-events-none before:absolute before:inset-y-1.5 before:left-0 before:w-0.5 before:rounded-full before:opacity-0 before:transition-opacity motion-reduce:before:transition-none",
+        highlighted && ["before:opacity-100", styles.drop],
       )}
     >
       {renaming ? (
         <SectionNameInput
           name={section.name}
-          dotClassName={SECTION_COLOR_DOT[color]}
+          glyph={<SectionGlyph icon={resolveSectionIcon(section.icon)} color={color} />}
           onDone={(name) => {
             setRenamingId(null);
             if (name !== null && name !== section.name) sectionDefinitions.rename(section.id, name);
@@ -203,31 +190,34 @@ function CustomSection<T extends SectionThread>(props: {
               openMenu({ x: event.clientX, y: event.clientY });
             }}
             className={cn(
-              "flex h-8 w-full cursor-pointer items-center gap-2 rounded-md px-2 text-left text-xs font-medium outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring/70",
-              highlighted
-                ? "text-primary"
-                : props.dragging
-                  ? "text-sidebar-foreground/80"
-                  : "text-sidebar-muted-foreground hover:text-sidebar-foreground",
+              "flex h-8 w-full cursor-pointer items-center gap-2 rounded-md ps-8.5 pe-2 text-left text-xs font-semibold outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring/70",
+              highlighted || props.dragging
+                ? "text-sidebar-foreground"
+                : "text-sidebar-foreground/75 hover:text-sidebar-foreground",
             )}
           >
-            <span
-              aria-hidden
-              className={cn("size-2 shrink-0 rounded-full", SECTION_COLOR_DOT[color])}
-            />
             <span className="min-w-0 truncate">{section.name}</span>
             <span aria-hidden className="h-px min-w-2 flex-1 invisible" />
-            <span className="shrink-0 font-normal tabular-nums group-hover/custom-section:invisible group-has-[[data-sidebar-action-for]:focus]/custom-section:invisible pointer-coarse:invisible">
+            <span className="shrink-0 rounded-full bg-sidebar-foreground/6 px-1.5 text-3xs leading-4 font-medium tabular-nums text-sidebar-muted-foreground group-hover/custom-section:invisible group-has-[[data-sidebar-action-for]:focus]/custom-section:invisible pointer-coarse:invisible">
               {count}
             </span>
             <ChevronDownIcon
               aria-hidden
               className={cn(
-                "size-3 shrink-0 transition-transform motion-reduce:transition-none",
+                "size-3 shrink-0 text-sidebar-muted-foreground transition-transform duration-200 ease-out motion-reduce:transition-none",
                 section.collapsed && "-rotate-90",
               )}
             />
           </button>
+          {/* Its own button beside the header's, since buttons cannot nest. */}
+          <span className="absolute top-1.5 left-1.5 flex">
+            <SectionIconPicker
+              section={section}
+              open={pickerOpen}
+              onOpenChange={setPickerOpen}
+              triggerRef={iconButtonRef}
+            />
+          </span>
           {/* Sits over the count, which hides on hover or focus, and left of the chevron. */}
           <span className="absolute top-0 right-6 flex h-8 items-center gap-0.5 opacity-0 focus-within:opacity-100 group-hover/custom-section:opacity-100 pointer-coarse:opacity-100">
             <Tooltip>
@@ -271,7 +261,7 @@ function CustomSection<T extends SectionThread>(props: {
           className={cn(
             "mx-0.5 mb-1 flex h-9 items-center justify-center rounded-md border border-dashed text-xs",
             highlighted
-              ? "border-primary/40 text-primary"
+              ? styles.dropHint
               : "border-sidebar-foreground/15 text-sidebar-muted-foreground",
           )}
         >
@@ -284,7 +274,7 @@ function CustomSection<T extends SectionThread>(props: {
 
 function SectionNameInput(props: {
   name: string;
-  dotClassName: string;
+  glyph: ReactNode;
   onDone: (name: string | null) => void;
 }) {
   // Enter and Escape blur the input as it unmounts; that blur must not commit again.
@@ -306,8 +296,8 @@ function SectionNameInput(props: {
     }
   };
   return (
-    <div className="flex h-8 items-center gap-2 px-2">
-      <span aria-hidden className={cn("size-2 shrink-0 rounded-full", props.dotClassName)} />
+    <div className="flex h-8 items-center gap-2 ps-1.5 pe-2">
+      {props.glyph}
       <input
         autoFocus
         defaultValue={props.name}
@@ -317,7 +307,7 @@ function SectionNameInput(props: {
         onFocus={(event) => event.currentTarget.select()}
         onKeyDown={handleKeyDown}
         onBlur={(event) => finish(event.currentTarget.value)}
-        className="-mx-1 min-w-0 flex-1 rounded-sm bg-card px-1 text-xs font-medium text-card-foreground outline-none ring-1 ring-inset ring-input focus:ring-foreground"
+        className="-mx-1 min-w-0 flex-1 rounded-sm bg-card px-1 text-xs font-semibold text-card-foreground outline-none ring-1 ring-inset ring-input focus:ring-foreground"
       />
     </div>
   );

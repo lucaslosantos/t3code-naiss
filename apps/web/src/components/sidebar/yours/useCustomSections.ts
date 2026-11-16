@@ -4,7 +4,7 @@ import {
   isAtomCommandInterrupted,
   squashAtomCommandFailure,
 } from "@t3tools/client-runtime/state/runtime";
-import type { SidebarCustomSection } from "@t3tools/contracts";
+import type { SidebarCustomSection, SidebarSectionIcon } from "@t3tools/contracts";
 import { create } from "zustand";
 
 import { getClientSettings, updateClientSettings } from "~/hooks/useSettings";
@@ -16,6 +16,8 @@ import {
   createSidebarSection,
   deleteSidebarSection,
   moveSidebarSection,
+  renameSidebarSection,
+  setSidebarSectionIcon,
   sidebarSectionTag,
   staleSectionTags,
   updateSidebarSection,
@@ -53,9 +55,11 @@ export const sectionDefinitions = {
     return id;
   },
   rename: (id: string, name: string) =>
-    void writeSections((sections) => updateSidebarSection(sections, id, { name })),
+    void writeSections((sections) => renameSidebarSection(sections, id, name)),
   setColor: (id: string, color: string) =>
     void writeSections((sections) => updateSidebarSection(sections, id, { color })),
+  setIcon: (id: string, icon: SidebarSectionIcon | null) =>
+    void writeSections((sections) => setSidebarSectionIcon(sections, id, icon)),
   setCollapsed: (id: string, collapsed: boolean) =>
     void writeSections((sections) => updateSidebarSection(sections, id, { collapsed })),
   move: (id: string, offset: -1 | 1) =>
