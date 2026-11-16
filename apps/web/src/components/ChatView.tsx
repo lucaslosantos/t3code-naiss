@@ -1921,6 +1921,7 @@ export default function ChatView(props: ChatViewProps) {
   const sendAppMessageStable = useStableCallback(sendAppMessage);
   const queuedRunsControlRef = useRef<QueuedRunsControlHandle>(null);
 
+  const terminalPlacement = useClientSettings((settings) => settings.terminalPlacement);
   const {
     activatePanelTerminalStable,
     addTerminalContextToDraftStable,
@@ -1950,6 +1951,7 @@ export default function ChatView(props: ChatViewProps) {
     gitCwd,
     setTerminalUiLaunchContext,
     setThreadError,
+    terminalPlacement,
   });
   const {
     saveProjectScript: saveProjectScriptStable,
@@ -3286,7 +3288,10 @@ export default function ChatView(props: ChatViewProps) {
   ) : null;
   const panelToggleControlProps = {
     terminalAvailable: activeProject !== null,
-    terminalOpen: terminalUiState.terminalOpen,
+    terminalOpen:
+      terminalPlacement === "right"
+        ? rightPanelOpen && activeRightPanelSurface?.kind === "terminal"
+        : terminalUiState.terminalOpen,
     terminalShortcutLabel: shortcutLabelForCommand(keybindings, "terminal.toggle"),
     threadPanelOpen,
     threadPanelPresentation,

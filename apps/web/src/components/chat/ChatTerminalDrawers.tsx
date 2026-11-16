@@ -5,11 +5,13 @@ import {
   scopeThreadRef,
 } from "@t3tools/client-runtime/environment";
 import { useState } from "react";
+import { createPortal } from "react-dom";
 import { useShallow } from "zustand/react/shallow";
 import { useComposerDraftStore } from "../../composerDraftStore";
 import type { TerminalContextSelection } from "../../lib/terminalContext";
 import { usePanelAnimationSettings, usePanelPresence } from "../../panelAnimations";
 import { useThreadRefs } from "../../state/entities";
+import { useSidebarTerminalHost } from "../yours/sidebarTerminalHost";
 import { useTerminalUiStateStore } from "../../terminalUiStateStore";
 import {
   MAX_HIDDEN_MOUNTED_TERMINAL_THREADS,
@@ -40,6 +42,7 @@ interface ChatTerminalDrawersProps {
  */
 export function ChatTerminalDrawers(props: ChatTerminalDrawersProps) {
   const { activeThreadKey } = props;
+  const sidebarTerminalHost = useSidebarTerminalHost();
   const openTerminalThreadKeys = useTerminalUiStateStore(
     useShallow((state) =>
       Object.entries(state.terminalUiStateByThreadKey).flatMap(
@@ -88,20 +91,24 @@ export function ChatTerminalDrawers(props: ChatTerminalDrawersProps) {
     return mountedThreadRef ? [{ key: mountedThreadKey, threadRef: mountedThreadRef }] : [];
   });
 
-  return mountedTerminalThreadRefs.map(({ key: mountedThreadKey, threadRef: mountedThreadRef }) => (
-    <PersistentThreadTerminalDrawer
-      key={mountedThreadKey}
-      threadRef={mountedThreadRef}
-      threadId={mountedThreadRef.threadId}
-      active={mountedThreadKey === activeThreadKey}
-      composerHeight={mountedThreadKey === activeThreadKey ? props.composerHeight : 0}
-      launchContext={mountedThreadKey === activeThreadKey ? props.launchContext : null}
-      splitShortcutLabel={props.splitShortcutLabel}
-      splitVerticalShortcutLabel={props.splitVerticalShortcutLabel}
-      newShortcutLabel={props.newShortcutLabel}
-      closeShortcutLabel={props.closeShortcutLabel}
-      keybindings={props.keybindings}
-      onAddTerminalContext={props.onAddTerminalContext}
-    />
-  ));
+  const drawers = mountedTerminalThreadRefs.map(
+    ({ key: mountedThreadKey, threadRef: mountedThreadRef }) => (
+      <PersistentThreadTerminalDrawer
+        key={mountedThreadKey}
+        presentation={sidebarTerminalHost ? "sidebar" : "drawer"}
+        threadRef={mountedThreadRef}
+        threadId={mountedThreadRef.threadId}
+        active={mountedThreadKey === activeThreadKey}
+        composerHeight={mountedThreadKey === activeThreadKey ? props.composerHeight : 0}
+        launchContext={mountedThreadKey === activeThreadKey ? props.launchContext : null}
+        splitShortcutLabel={props.splitShortcutLabel}
+        splitVerticalShortcutLabel={props.splitVerticalShortcutLabel}
+        newShortcutLabel={props.newShortcutLabel}
+        closeShortcutLabel={props.closeShortcutLabel}
+        keybindings={props.keybindings}
+        onAddTerminalContext={props.onAddTerminalContext}
+      />
+    ),
+  );
+  return sidebarTerminalHost ? createPortal(drawers, sidebarTerminalHost) : drawers;
 }

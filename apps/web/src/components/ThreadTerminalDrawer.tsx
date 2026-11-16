@@ -93,6 +93,7 @@ import { useAtomCommand } from "../state/use-atom-command";
 import { preventTerminalCloseShortcut } from "../lib/terminalCloseShortcut";
 import { observeResize } from "../lib/observeResize";
 import { threadShortcutContext } from "./Sidebar.logic";
+import { TerminalPlacementMenu } from "./yours/TerminalPlacementMenu";
 import {
   consumePendingTerminalFocus,
   focusTerminal,
@@ -1196,7 +1197,8 @@ function TerminalSessionViewport({
 }
 
 interface ThreadTerminalDrawerProps {
-  mode?: "drawer" | "panel";
+  /** "sidebar" fills the sidebar's terminal pane, which draws its own tab header. */
+  mode?: "drawer" | "panel" | "sidebar";
   threadRef: ScopedThreadRef;
   threadId: ThreadId;
   cwd: string;
@@ -1483,7 +1485,9 @@ export default function ThreadTerminalDrawer({
 }: ThreadTerminalDrawerProps) {
   const canOperateTerminal = useEnvironmentScope(threadRef.environmentId, AuthTerminalOperateScope);
   const terminalArea = workspaceAreaProps("terminal", 5, "Terminal");
-  const isPanel = mode === "panel";
+  const isPanel = mode !== "drawer";
+  const terminalOwner = mode === "panel" ? "right-panel" : "drawer";
+  const terminalPlacement = mode === "panel" ? "right" : mode === "drawer" ? "bottom" : "sidebar";
   const [advancedTypography] = useLocalStorage(
     TYPOGRAPHY_ADVANCED_STORAGE_KEY,
     false,
@@ -1622,7 +1626,7 @@ export default function ThreadTerminalDrawer({
     (normalizedTerminalIds.length > 0 ? [resolvedActiveTerminalId] : []);
   const splitDirection =
     resolvedTerminalGroups[resolvedActiveGroupIndex]?.splitDirection ?? "horizontal";
-  const hasTerminalSidebar = normalizedTerminalIds.length > 1;
+  const hasTerminalSidebar = normalizedTerminalIds.length > 1 && mode !== "sidebar";
   const showGroupHeaders =
     resolvedTerminalGroups.length > 1 ||
     resolvedTerminalGroups.some((terminalGroup) => terminalGroup.terminalIds.length > 1);
@@ -1780,7 +1784,7 @@ export default function ThreadTerminalDrawer({
         ref={drawerRef}
         {...(!isPanel && visible ? terminalArea : {})}
         data-thread-terminal-drawer
-        data-terminal-owner={isPanel ? "right-panel" : "drawer"}
+        data-terminal-owner={terminalOwner}
         className={cn(
           "relative flex min-w-0 flex-col overflow-hidden bg-background",
           isPanel ? "h-full flex-1" : "z-45 shrink-0 border-t border-border/80",
@@ -1808,7 +1812,7 @@ export default function ThreadTerminalDrawer({
       ref={drawerRef}
       {...(!isPanel && visible ? terminalArea : {})}
       data-thread-terminal-drawer
-      data-terminal-owner={isPanel ? "right-panel" : "drawer"}
+      data-terminal-owner={terminalOwner}
       className={cn(
         "relative flex min-w-0 flex-col overflow-hidden bg-background",
         isPanel ? "h-full flex-1" : "z-45 shrink-0 border-t border-border/80",
@@ -1863,6 +1867,16 @@ export default function ThreadTerminalDrawer({
             >
               <Trash2 className="size-3.25" />
             </TerminalActionButton>
+            {mode === "sidebar" ? null : (
+              <>
+                <div className="h-4 w-px bg-border/80" />
+                <TerminalPlacementMenu
+                  threadRef={threadRef}
+                  current={terminalPlacement}
+                  variant="toolbar"
+                />
+              </>
+            )}
           </div>
         </div>
       )}
@@ -1937,6 +1951,11 @@ export default function ThreadTerminalDrawer({
                   >
                     <Trash2 className="size-3.25" />
                   </TerminalActionButton>
+                  <TerminalPlacementMenu
+                    threadRef={threadRef}
+                    current={terminalPlacement}
+                    variant="list"
+                  />
                 </div>
               </div>
 

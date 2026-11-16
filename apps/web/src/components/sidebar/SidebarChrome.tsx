@@ -39,6 +39,7 @@ import { SidebarProviderUpdatePill } from "./SidebarProviderUpdatePill";
 import { SidebarUpdateArchitectureWarning, SidebarUpdatePill } from "./SidebarUpdatePill";
 import { PullRequestGlyph } from "~/components/pullRequest/pullRequestIcons";
 import { observeResize } from "~/lib/observeResize";
+import { SidebarTerminalSplit } from "~/components/yours/SidebarTerminalSplit";
 
 export const SidebarChromeHeader = memo(function SidebarChromeHeader({
   isElectron,
@@ -293,10 +294,13 @@ const SidebarUtilityMenu = memo(function SidebarUtilityMenu() {
 
 export const SidebarChromeFooter = memo(function SidebarChromeFooter() {
   return (
-    <SidebarFooter>
-      <SidebarProviderUpdatePill />
-      <SidebarUpdateArchitectureWarning />
-      <SidebarUtilityMenu />
-    </SidebarFooter>
+    <>
+      <SidebarTerminalSplit />
+      <SidebarFooter>
+        <SidebarProviderUpdatePill />
+        <SidebarUpdateArchitectureWarning />
+        <SidebarUtilityMenu />
+      </SidebarFooter>
+    </>
   );
 });
