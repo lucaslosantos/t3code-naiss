@@ -12,12 +12,12 @@ import { selectThreadTerminalUiState, useTerminalUiStateStore } from "../../term
 import { Button } from "../ui/button";
 import { useSidebar } from "../ui/sidebar";
 import { Tooltip, TooltipPopup, TooltipTrigger } from "../ui/tooltip";
-import { setSidebarTerminalHost } from "./sidebarTerminalHost";
+import { setSidebarTerminalHost } from "./terminalHosts";
 import { TerminalPlacementMenu } from "./TerminalPlacementMenu";
 import {
-  clampSidebarTerminalRatio,
-  SIDEBAR_TERMINAL_DEFAULT_RATIO,
-  sidebarTerminalRatioFromDrag,
+  clampTerminalPaneRatio,
+  SIDEBAR_TERMINAL_SPLIT,
+  terminalPaneRatioFromDrag,
 } from "./terminalPlacement.logic";
 import { useRouteThreadRef } from "./useRouteThreadRef";
 
@@ -48,10 +48,10 @@ function SidebarTerminalPane() {
 
   const [storedRatio, setStoredRatio] = useLocalStorage(
     RATIO_STORAGE_KEY,
-    SIDEBAR_TERMINAL_DEFAULT_RATIO,
+    SIDEBAR_TERMINAL_SPLIT.defaultRatio,
     Schema.Number,
   );
-  const ratio = clampSidebarTerminalRatio(storedRatio, 0);
+  const ratio = clampTerminalPaneRatio(storedRatio, 0, SIDEBAR_TERMINAL_SPLIT);
   const paneRef = useRef<HTMLDivElement | null>(null);
   const dragRef = useRef<{
     pointerId: number;
@@ -97,7 +97,7 @@ function SidebarTerminalPane() {
     if (containerHeight <= 0) return;
     event.preventDefault();
     event.currentTarget.setPointerCapture(event.pointerId);
-    const startRatio = clampSidebarTerminalRatio(ratio, containerHeight);
+    const startRatio = clampTerminalPaneRatio(ratio, containerHeight, SIDEBAR_TERMINAL_SPLIT);
     dragRef.current = {
       pointerId: event.pointerId,
       startY: event.clientY,
@@ -110,11 +110,12 @@ function SidebarTerminalPane() {
     const drag = dragRef.current;
     if (!drag || drag.pointerId !== event.pointerId) return;
     event.preventDefault();
-    const next = sidebarTerminalRatioFromDrag({
+    const next = terminalPaneRatioFromDrag({
       startRatio: drag.startRatio,
       startY: drag.startY,
       pointerY: event.clientY,
       containerHeight: drag.containerHeight,
+      split: SIDEBAR_TERMINAL_SPLIT,
     });
     if (next === drag.ratio) return;
     drag.ratio = next;
@@ -155,9 +156,9 @@ function SidebarTerminalPane() {
         onDoubleClick={() => {
           paneRef.current?.style.setProperty(
             "flex-basis",
-            `${SIDEBAR_TERMINAL_DEFAULT_RATIO * 100}%`,
+            `${SIDEBAR_TERMINAL_SPLIT.defaultRatio * 100}%`,
           );
-          setStoredRatio(SIDEBAR_TERMINAL_DEFAULT_RATIO);
+          setStoredRatio(SIDEBAR_TERMINAL_SPLIT.defaultRatio);
         }}
       />
       <div className="flex h-8 shrink-0 items-center gap-1 ps-2 pe-1">

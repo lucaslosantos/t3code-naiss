@@ -17,7 +17,7 @@ export function TerminalPlacementSettingsRow() {
   return (
     <SettingsRow
       {...searchableSetting("terminal-placement")}
-      description="Show the thread terminal in the right panel, below the chat, or under the thread list."
+      description="Show the thread terminal docked at the bottom of the right panel, below the chat, or under the thread list."
       resetAction={
         placement !== defaultPlacement ? (
           <SettingResetButton

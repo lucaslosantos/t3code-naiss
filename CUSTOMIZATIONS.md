@@ -2,6 +2,7 @@
 
 Newest first. Each entry: date, what changed (plain words), merge commit.
 
+- 2026-11-16: Right-panel terminal is now a dock under the panel's tabs, like Conductor: its own tabs, fold chevron, resizable divider, and a Run button for project scripts.
 - 2026-11-16: Terminal position: right panel (default), bottom, or a split at the bottom of the sidebar. Move it from the terminal's own menu, Settings, or the command palette.
 - 2026-11-16: Nested subagents: child agents show as a tree under their parent thread, with live status dots.
 - 2026-11-16: Custom sidebar sections (like Conductor): create, rename, recolor, collapse; drag threads in or use "Move to section".

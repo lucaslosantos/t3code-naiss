@@ -11,7 +11,7 @@ import { useComposerDraftStore } from "../../composerDraftStore";
 import type { TerminalContextSelection } from "../../lib/terminalContext";
 import { usePanelAnimationSettings, usePanelPresence } from "../../panelAnimations";
 import { useThreadRefs } from "../../state/entities";
-import { useSidebarTerminalHost } from "../yours/sidebarTerminalHost";
+import { useTerminalDrawerHost } from "../yours/terminalHosts";
 import { useTerminalUiStateStore } from "../../terminalUiStateStore";
 import {
   MAX_HIDDEN_MOUNTED_TERMINAL_THREADS,
@@ -42,7 +42,7 @@ interface ChatTerminalDrawersProps {
  */
 export function ChatTerminalDrawers(props: ChatTerminalDrawersProps) {
   const { activeThreadKey } = props;
-  const sidebarTerminalHost = useSidebarTerminalHost();
+  const terminalHost = useTerminalDrawerHost();
   const openTerminalThreadKeys = useTerminalUiStateStore(
     useShallow((state) =>
       Object.entries(state.terminalUiStateByThreadKey).flatMap(
@@ -95,7 +95,7 @@ export function ChatTerminalDrawers(props: ChatTerminalDrawersProps) {
     ({ key: mountedThreadKey, threadRef: mountedThreadRef }) => (
       <PersistentThreadTerminalDrawer
         key={mountedThreadKey}
-        presentation={sidebarTerminalHost ? "sidebar" : "drawer"}
+        presentation={terminalHost.kind === "portal" ? "sidebar" : "drawer"}
         threadRef={mountedThreadRef}
         threadId={mountedThreadRef.threadId}
         active={mountedThreadKey === activeThreadKey}
@@ -110,5 +110,6 @@ export function ChatTerminalDrawers(props: ChatTerminalDrawersProps) {
       />
     ),
   );
-  return sidebarTerminalHost ? createPortal(drawers, sidebarTerminalHost) : drawers;
+  if (terminalHost.kind === "none") return null;
+  return terminalHost.kind === "portal" ? createPortal(drawers, terminalHost.element) : drawers;
 }

@@ -156,6 +156,10 @@ export interface RightPanelTabsProps {
   /** Overrides the default reason while side chats are available but cannot start. */
   sideChatDisabledReason?: string | null;
   pullRequestStatusSeeds?: Readonly<Record<string, PullRequestTabStatusSeed>>;
+  /** Fork-only: the terminal dock under the panel body. */
+  bottomDock?: ReactNode;
+  /** Fork-only: the dock takes the whole panel while no tab is open. */
+  bottomDockFills?: boolean;
   children: ReactNode;
 }
 
@@ -1534,7 +1538,10 @@ export function RightPanelTabs(props: RightPanelTabsProps) {
           />
         ) : null}
       </div>
-      <div className="flex min-h-0 flex-1 flex-col" data-right-panel-surface-content>
+      <div
+        className={cn("flex min-h-0 flex-1 flex-col", props.bottomDockFills && "hidden")}
+        data-right-panel-surface-content
+      >
         {props.activeSurfaceId === null ? (
           <RightPanelEmptyState
             onAddBrowser={props.onAddBrowser}
@@ -1561,6 +1568,7 @@ export function RightPanelTabs(props: RightPanelTabsProps) {
           props.children
         )}
       </div>
+      {props.bottomDock}
     </PreviewPanelShell>
   );
 }

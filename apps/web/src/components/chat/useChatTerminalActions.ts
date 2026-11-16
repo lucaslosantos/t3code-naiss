@@ -40,7 +40,6 @@ import {
   focusActiveDrawerTerminal,
   focusActivePanelTerminal,
   focusTerminal,
-  type TerminalFocusOwner,
 } from "../../lib/terminalFocus";
 import { useTerminalUiStateStore } from "../../terminalUiStateStore";
 import {
@@ -54,10 +53,8 @@ import { readEnvironmentScope } from "../../state/session";
 import { useAtomCommand } from "../../state/use-atom-command";
 import type { ChatShortcutCommands } from "./useChatShortcuts";
 import type { TerminalPlacement } from "@t3tools/contracts/settings";
-import {
-  installTerminalPlacementGuard,
-  toggleRightPanelTerminal,
-} from "../yours/terminalPlacement";
+import { installTerminalPlacementGuard, toggleRightDockTerminal } from "../yours/terminalPlacement";
+import { projectScriptRunTerminalId } from "../yours/rightTerminalDock.logic";
 
 installTerminalPlacementGuard();
 const SCRIPT_TERMINAL_COLS = 120;
@@ -152,13 +149,13 @@ export function useChatTerminalActions(input: ChatTerminalActionsInput) {
   };
   const setTerminalOpenStable = useStableCallback(setTerminalOpen);
   const toggleTerminalVisibility = () => {
-    if (activeThreadRef && terminalPlacement === "right") {
-      if (toggleRightPanelTerminal(activeThreadRef)) return;
-      // No terminal tab yet: open one the drawer's way; the placement guard moves it right.
-      toggleDrawerTerminalVisibility();
-      focusActivePanelTerminal(activeThreadRef);
+    // Docked on the right: the guard reveals the dock when the drawer opens.
+    if (
+      activeThreadRef &&
+      terminalPlacement === "right" &&
+      toggleRightDockTerminal(activeThreadRef)
+    )
       return;
-    }
     toggleDrawerTerminalVisibility();
   };
   const toggleDrawerTerminalVisibility = () => {
@@ -240,8 +237,16 @@ export function useChatTerminalActions(input: ChatTerminalActionsInput) {
       });
     }
     const targetCwd = options?.cwd ?? gitCwd ?? activeProject.workspaceRoot;
+    const runTerminalId = projectScriptRunTerminalId({
+      docked: terminalPlacement === "right" && options?.rememberAsLastInvoked !== false,
+      stopOnSettle: script.stopOnSettle ?? false,
+      preferNewTerminal: options?.preferNewTerminal ?? false,
+      runningTerminalIds,
+      closingTerminalIds: activeThreadRef ? closingTerminalIds(activeThreadRef) : [],
+    });
     const reusableTerminalId =
-      script.stopOnSettle ||
+      runTerminalId ??
+      (script.stopOnSettle ||
       options?.preferNewTerminal ||
       !canReuseTerminal ||
       !readEnvironmentScope(environmentId, AuthTerminalReadScope)
@@ -256,7 +261,7 @@ export function useChatTerminalActions(input: ChatTerminalActionsInput) {
             panelTerminalIds,
             runningTerminalIds,
             closingTerminalIds: activeThreadRef ? closingTerminalIds(activeThreadRef) : [],
-          });
+          }));
     const targetWorktreePath = options?.worktreePath ?? activeThread.worktreePath ?? null;
 
     setTerminalUiLaunchContext({
@@ -427,17 +432,10 @@ export function useChatTerminalActions(input: ChatTerminalActionsInput) {
     });
   };
   const requestClosePanelTerminalStable = useStableCallback(requestClosePanelTerminal);
-  const splitOrAddPanelTerminal = (direction: "horizontal" | "vertical" = "horizontal") => {
-    if (activeRightPanelSurface?.kind === "terminal") splitPanelTerminal(direction);
-    else addTerminalSurface();
-  };
   const openTerminalIfClosed = () => {
     if (!terminalUiState.terminalOpen) setTerminalOpen(true);
   };
   // A focused right-panel terminal takes the split/new/close chords; otherwise they act on the drawer.
-  // With the terminal placed on the right they always act on the panel.
-  const panelOwnsShortcut = (owner: TerminalFocusOwner | null) =>
-    owner === "right-panel" || terminalPlacement === "right";
   const shortcuts = {
     "terminal.toggle": () => {
       if (
@@ -450,19 +448,19 @@ export function useChatTerminalActions(input: ChatTerminalActionsInput) {
     },
     "terminal.split": ({ terminalFocusOwner }) => {
       if (!hasTerminalWriteAccess()) return false;
-      if (panelOwnsShortcut(terminalFocusOwner)) return void splitOrAddPanelTerminal();
+      if (terminalFocusOwner === "right-panel") return void splitPanelTerminal();
       openTerminalIfClosed();
       splitTerminal();
     },
     "terminal.splitVertical": ({ terminalFocusOwner }) => {
       if (!hasTerminalWriteAccess()) return false;
-      if (panelOwnsShortcut(terminalFocusOwner)) return void splitOrAddPanelTerminal("vertical");
+      if (terminalFocusOwner === "right-panel") return void splitPanelTerminal("vertical");
       openTerminalIfClosed();
       splitTerminal("vertical");
     },
     "terminal.close": ({ terminalFocusOwner }) => {
       if (!hasTerminalWriteAccess()) return false;
-      if (panelOwnsShortcut(terminalFocusOwner) && activeRightPanelSurface?.kind === "terminal") {
+      if (terminalFocusOwner === "right-panel" && activeRightPanelSurface?.kind === "terminal") {
         requestClosePanelTerminal(activeRightPanelSurface.activeTerminalId);
         return;
       }
@@ -470,7 +468,7 @@ export function useChatTerminalActions(input: ChatTerminalActionsInput) {
     },
     "terminal.new": ({ terminalFocusOwner }) => {
       if (!hasTerminalWriteAccess()) return false;
-      if (panelOwnsShortcut(terminalFocusOwner)) return void addTerminalSurface();
+      if (terminalFocusOwner === "right-panel") return void addTerminalSurface();
       openTerminalIfClosed();
       createNewTerminal();
     },
