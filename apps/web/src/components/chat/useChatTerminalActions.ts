@@ -40,6 +40,7 @@ import {
   focusActiveDrawerTerminal,
   focusActivePanelTerminal,
   focusTerminal,
+  type TerminalFocusOwner,
 } from "../../lib/terminalFocus";
 import { useTerminalUiStateStore } from "../../terminalUiStateStore";
 import {
@@ -52,6 +53,13 @@ import { previewEnvironment } from "../../state/preview";
 import { readEnvironmentScope } from "../../state/session";
 import { useAtomCommand } from "../../state/use-atom-command";
 import type { ChatShortcutCommands } from "./useChatShortcuts";
+import type { TerminalPlacement } from "@t3tools/contracts/settings";
+import {
+  installTerminalPlacementGuard,
+  toggleRightPanelTerminal,
+} from "../yours/terminalPlacement";
+
+installTerminalPlacementGuard();
 const SCRIPT_TERMINAL_COLS = 120;
 const SCRIPT_TERMINAL_ROWS = 30;
 
@@ -78,6 +86,7 @@ interface ChatTerminalActionsInput {
   readonly gitCwd: string | null;
   readonly setTerminalUiLaunchContext: Dispatch<SetStateAction<TerminalLaunchContext | null>>;
   readonly setThreadError: ReturnType<typeof makeThreadErrorSetter>;
+  readonly terminalPlacement: TerminalPlacement;
 }
 
 /**
@@ -102,6 +111,7 @@ export function useChatTerminalActions(input: ChatTerminalActionsInput) {
     gitCwd,
     setTerminalUiLaunchContext,
     setThreadError,
+    terminalPlacement,
   } = input;
   const openPreview = useAtomCommand(previewEnvironment.open, { reportFailure: false });
 
@@ -142,6 +152,16 @@ export function useChatTerminalActions(input: ChatTerminalActionsInput) {
   };
   const setTerminalOpenStable = useStableCallback(setTerminalOpen);
   const toggleTerminalVisibility = () => {
+    if (activeThreadRef && terminalPlacement === "right") {
+      if (toggleRightPanelTerminal(activeThreadRef)) return;
+      // No terminal tab yet: open one the drawer's way; the placement guard moves it right.
+      toggleDrawerTerminalVisibility();
+      focusActivePanelTerminal(activeThreadRef);
+      return;
+    }
+    toggleDrawerTerminalVisibility();
+  };
+  const toggleDrawerTerminalVisibility = () => {
     if (!activeThreadRef) return;
     const nextOpen = !terminalUiState.terminalOpen;
     if (
@@ -407,10 +427,17 @@ export function useChatTerminalActions(input: ChatTerminalActionsInput) {
     });
   };
   const requestClosePanelTerminalStable = useStableCallback(requestClosePanelTerminal);
+  const splitOrAddPanelTerminal = (direction: "horizontal" | "vertical" = "horizontal") => {
+    if (activeRightPanelSurface?.kind === "terminal") splitPanelTerminal(direction);
+    else addTerminalSurface();
+  };
   const openTerminalIfClosed = () => {
     if (!terminalUiState.terminalOpen) setTerminalOpen(true);
   };
   // A focused right-panel terminal takes the split/new/close chords; otherwise they act on the drawer.
+  // With the terminal placed on the right they always act on the panel.
+  const panelOwnsShortcut = (owner: TerminalFocusOwner | null) =>
+    owner === "right-panel" || terminalPlacement === "right";
   const shortcuts = {
     "terminal.toggle": () => {
       if (
@@ -423,19 +450,19 @@ export function useChatTerminalActions(input: ChatTerminalActionsInput) {
     },
     "terminal.split": ({ terminalFocusOwner }) => {
       if (!hasTerminalWriteAccess()) return false;
-      if (terminalFocusOwner === "right-panel") return void splitPanelTerminal();
+      if (panelOwnsShortcut(terminalFocusOwner)) return void splitOrAddPanelTerminal();
       openTerminalIfClosed();
       splitTerminal();
     },
     "terminal.splitVertical": ({ terminalFocusOwner }) => {
       if (!hasTerminalWriteAccess()) return false;
-      if (terminalFocusOwner === "right-panel") return void splitPanelTerminal("vertical");
+      if (panelOwnsShortcut(terminalFocusOwner)) return void splitOrAddPanelTerminal("vertical");
       openTerminalIfClosed();
       splitTerminal("vertical");
     },
     "terminal.close": ({ terminalFocusOwner }) => {
       if (!hasTerminalWriteAccess()) return false;
-      if (terminalFocusOwner === "right-panel" && activeRightPanelSurface?.kind === "terminal") {
+      if (panelOwnsShortcut(terminalFocusOwner) && activeRightPanelSurface?.kind === "terminal") {
         requestClosePanelTerminal(activeRightPanelSurface.activeTerminalId);
         return;
       }
@@ -443,7 +470,7 @@ export function useChatTerminalActions(input: ChatTerminalActionsInput) {
     },
     "terminal.new": ({ terminalFocusOwner }) => {
       if (!hasTerminalWriteAccess()) return false;
-      if (terminalFocusOwner === "right-panel") return void addTerminalSurface();
+      if (panelOwnsShortcut(terminalFocusOwner)) return void addTerminalSurface();
       openTerminalIfClosed();
       createNewTerminal();
     },

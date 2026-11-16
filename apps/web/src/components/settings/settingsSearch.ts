@@ -348,6 +348,12 @@ export const SETTINGS_SEARCH_ITEMS = [
     searchTerms: ["wide full width column layout messages composer monitor"],
   },
   {
+    id: "terminal-placement",
+    title: "Terminal position",
+    to: "/settings/appearance",
+    searchTerms: ["terminal right panel bottom drawer sidebar split move placement shell"],
+  },
+  {
     id: "thread-details-items",
     title: "Thread details",
     to: "/settings/appearance",

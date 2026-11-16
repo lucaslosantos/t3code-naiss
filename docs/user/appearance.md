@@ -29,6 +29,14 @@ The controls retreat as the composer docks after you send the first message.
 Turn on **Composer context** to keep those controls visible after the thread starts. This preference
 applies to the web and desktop clients.
 
+## Terminal position
+
+On web and desktop, choose where the thread terminal opens with **Terminal position** in
+**Settings → Appearance**: the right panel (default), the bottom of the chat, or the sidebar below
+the thread list. The terminal's own **Move terminal** button and the command palette's **Move
+terminal to …** actions switch it in one step without restarting the shell. In the sidebar, drag
+the divider to resize the terminal and double-click it to reset.
+
 ## Math
 
 Turn on **Render math** in **Settings → Appearance** to typeset LaTeX in messages and Markdown

@@ -74,6 +74,8 @@ interface TerminalLaunchLocationWithEnv {
 }
 
 interface PersistentThreadTerminalDrawerProps {
+  /** "sidebar" fills the sidebar's terminal pane instead of sliding up under the chat. */
+  presentation?: "drawer" | "sidebar";
   threadRef: { environmentId: EnvironmentId; threadId: ThreadId };
   threadId: ThreadId;
   active: boolean;
@@ -88,6 +90,7 @@ interface PersistentThreadTerminalDrawerProps {
 }
 
 export const PersistentThreadTerminalDrawer = memo(function PersistentThreadTerminalDrawer({
+  presentation = "drawer",
   threadRef,
   threadId,
   active,
@@ -238,18 +241,28 @@ export const PersistentThreadTerminalDrawer = memo(function PersistentThreadTerm
     return null;
   }
 
+  const sidebar = presentation === "sidebar";
   return (
     <div
       className={cn(
-        "grid shrink-0 overflow-clip",
-        active ? (visible ? "grid-rows-[1fr]" : "grid-rows-[0fr]") : "hidden",
-        active &&
+        sidebar
+          ? visible
+            ? "flex min-h-0 flex-1 flex-col"
+            : "hidden"
+          : "grid shrink-0 overflow-clip",
+        !sidebar && (active ? (visible ? "grid-rows-[1fr]" : "grid-rows-[0fr]") : "hidden"),
+        !sidebar &&
+          active &&
           "[[data-panel-animations=true]_&]:transition-[grid-template-rows] [[data-panel-animations=true]_&]:duration-(--panel-animation-duration) [[data-panel-animations=true]_&]:ease-out",
-        active && visible && "[[data-panel-animations=true]_&]:starting:grid-rows-[0fr]!",
+        !sidebar &&
+          active &&
+          visible &&
+          "[[data-panel-animations=true]_&]:starting:grid-rows-[0fr]!",
       )}
     >
-      <div className="min-h-0 overflow-clip">
+      <div className={sidebar ? "flex min-h-0 flex-1 flex-col" : "min-h-0 overflow-clip"}>
         <ThreadTerminalDrawer
+          mode={sidebar ? "sidebar" : "drawer"}
           threadRef={threadRef}
           threadId={threadId}
           cwd={cwd}
