@@ -496,6 +496,9 @@ export function useSettingsRestore(onRestored?: () => void) {
     ...(settings.sidebarWorkingShelfEnabled !== DEFAULT_UNIFIED_SETTINGS.sidebarWorkingShelfEnabled
       ? ["Working section"]
       : []),
+    ...(settings.sidebarShowSubagents !== DEFAULT_UNIFIED_SETTINGS.sidebarShowSubagents
+      ? ["Show subagents in sidebar"]
+      : []),
     ...(settings.sidebarAutoSettleAfterDays !== DEFAULT_UNIFIED_SETTINGS.sidebarAutoSettleAfterDays
       ? ["Auto-settle inactive threads"]
       : []),
@@ -677,6 +680,7 @@ export function useSettingsRestore(onRestored?: () => void) {
       sidebarProjectGroupingMode: DEFAULT_UNIFIED_SETTINGS.sidebarProjectGroupingMode,
       sidebarProjectSortOrder: DEFAULT_UNIFIED_SETTINGS.sidebarProjectSortOrder,
       sidebarWorkingShelfEnabled: DEFAULT_UNIFIED_SETTINGS.sidebarWorkingShelfEnabled,
+      sidebarShowSubagents: DEFAULT_UNIFIED_SETTINGS.sidebarShowSubagents,
       sidebarAutoSettleAfterDays: DEFAULT_UNIFIED_SETTINGS.sidebarAutoSettleAfterDays,
       sidebarAutoSettleKeepPullRequests: DEFAULT_UNIFIED_SETTINGS.sidebarAutoSettleKeepPullRequests,
       sidebarAutoSettleOnMerge: DEFAULT_UNIFIED_SETTINGS.sidebarAutoSettleOnMerge,
@@ -927,6 +931,36 @@ export function GeneralSettingsPanel() {
                 updateSettings({ sidebarWorkingShelfEnabled: Boolean(checked) })
               }
               aria-label={gt("Working section")}
+            />
+          }
+        />
+        <SettingsRow
+          {...setting("sidebar-subagents")}
+          description={
+            <T>
+              Nest subagents and delegated tasks under the thread that started them, with their live
+              status.
+            </T>
+          }
+          resetAction={
+            settings.sidebarShowSubagents !== DEFAULT_UNIFIED_SETTINGS.sidebarShowSubagents ? (
+              <SettingResetButton
+                label="subagents in sidebar"
+                onClick={() =>
+                  updateSettings({
+                    sidebarShowSubagents: DEFAULT_UNIFIED_SETTINGS.sidebarShowSubagents,
+                  })
+                }
+              />
+            ) : null
+          }
+          control={
+            <Switch
+              checked={settings.sidebarShowSubagents}
+              onCheckedChange={(checked) =>
+                updateSettings({ sidebarShowSubagents: Boolean(checked) })
+              }
+              aria-label={gt("Show subagents in sidebar")}
             />
           }
         />

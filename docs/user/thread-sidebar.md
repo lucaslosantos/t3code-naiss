@@ -160,6 +160,26 @@ Pinned threads stay above the folders, and Snoozed and Settled stay below them. 
 can drag a thread onto the composer to mention it, but not within the sidebar, and the Working
 section is off. Each device keeps its own choice.
 
+### Your own sections
+
+On web and desktop, group threads into sections you name, such as **In review** or
+**Ready to merge**. Right-click a thread and choose **Move to section → New section…**,
+or drag a thread onto a section's header or list. Sections sit below **Pinned**. A thread
+in a section leaves **Active** and the **Working** shelf, but pinning, snoozing, and
+settling still move it to those places. To take it out, drag it back into the list or
+choose **Remove from section**.
+
+Hover a section's header for **New section** and its menu: rename, color, move up or down,
+or delete. Deleting a section returns its threads to **Active**. Click a header to collapse
+it. Sections are kept on the device where you made them.
+
+### Subagents in the sidebar
+
+On web and desktop, threads that started subagents or delegated tasks show a count under
+their row. Click it to see each child with its status, nested as deep as they go, and click
+a child to open it. The list opens on its own while a child is working, until you open or
+close it yourself. Turn this off in **Settings → General → Show subagents in sidebar**.
+
 ## Settle finished work
 
 Choose **Settle thread** from its menu to move finished work out of the active list
