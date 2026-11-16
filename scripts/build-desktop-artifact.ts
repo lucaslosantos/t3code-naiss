@@ -2792,7 +2792,10 @@ export const createBuildConfig = Effect.fn("createBuildConfig")(function* (
 ) {
   const buildConfig: Record<string, unknown> = {
     afterPack: (yield* Path.Path).join(yield* RepoRoot, "scripts/prepare-server-compile-cache.cjs"),
-    appId: process.env.T3CODE_DESKTOP_APP_ID?.trim() || DESKTOP_APP_ID,
+    // Fork-only: a separate app id so the fork installs beside the official app.
+    appId:
+      (yield* Config.string("T3CODE_DESKTOP_APP_ID").pipe(Config.withDefault(""))).trim() ||
+      DESKTOP_APP_ID,
     productName: resolveDesktopProductName(version),
     artifactName: "T3-Code-${version}-${arch}.${ext}",
     electronLanguages: [...DESKTOP_ELECTRON_LANGUAGES],
