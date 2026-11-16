@@ -23,6 +23,7 @@ import * as DesktopUserData from "./DesktopUserData.ts";
 import * as DesktopEnvironment from "./DesktopEnvironment.ts";
 import { openClerkTokenStorage } from "./ClerkTokenStore.ts";
 import * as DesktopWebLinks from "./DesktopWebLinks.ts";
+import * as YoursProfileOwner from "../yours/YoursProfileOwner.ts";
 
 declare const __T3CODE_BUILD_CLERK_PUBLISHABLE_KEY__: string | undefined;
 
@@ -113,6 +114,10 @@ export const make = Effect.gen(function* () {
 
   // Clerk skips the profile lock on macOS. Interrupt before runtime construction because quit is asynchronous.
   if (!(yield* electronApp.requestSingleInstanceLock)) {
+    yield* YoursProfileOwner.reportForeignLockOwner({
+      platform: environment.platform,
+      userDataPath,
+    });
     yield* electronApp.quit;
     return yield* Effect.interrupt;
   }
