@@ -253,9 +253,18 @@ function CustomSection<T extends SectionThread>(props: {
         </>
       )}
       {threads.length > 0 ? (
-        <ul className="flex flex-col gap-px">
-          {threads.map((thread) => props.renderThread(thread))}
-        </ul>
+        <div className="relative ps-3">
+          <span
+            aria-hidden
+            className={cn(
+              "pointer-events-none absolute inset-y-1 start-1.5 w-px rounded-full opacity-35",
+              styles.dot,
+            )}
+          />
+          <ul className="flex flex-col gap-px">
+            {threads.map((thread) => props.renderThread(thread))}
+          </ul>
+        </div>
       ) : !section.collapsed ? (
         <div
           className={cn(

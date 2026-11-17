@@ -2,6 +2,8 @@
 
 Newest first. Each entry: date, what changed (plain words), merge commit.
 
+- 2026-11-17: Threads inside a section now sit slightly indented under a thin line in the section's color, so it's clear which section they belong to. (8d90eaf921)
+
 - 2026-11-16: Section emoji tab now shows a searchable grid of about 125 emoji (type "rocket", "done", "heart"…); pasting any other emoji still works.
 
 - 2026-11-16: Section icons: click a section's dot to give it an icon (about 80 to search) or any emoji, and pick its color in the same place. Headers got a tinted icon chip, a bolder name, a quiet count pill, and a colored edge when you drag a thread over them. New sections suggest an icon from their name.
