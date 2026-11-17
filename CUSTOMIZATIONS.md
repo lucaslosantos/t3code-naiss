@@ -2,7 +2,7 @@
 
 Newest first. Each entry: date, what changed (plain words), merge commit.
 
-- 2026-11-17: Threads inside a section now sit slightly indented under a thin line in the section's color, so it's clear which section they belong to. (8d90eaf921)
+- 2026-11-17: Threads inside a section now sit slightly indented under a thin line in the section's color, so it's clear which section they belong to. (merge a38a41ebe1)
 
 - 2026-11-16: Section emoji tab now shows a searchable grid of about 125 emoji (type "rocket", "done", "heart"…); pasting any other emoji still works.
 
