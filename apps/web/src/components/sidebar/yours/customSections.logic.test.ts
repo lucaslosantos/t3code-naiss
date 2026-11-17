@@ -4,12 +4,15 @@ import { describe, expect, it } from "vite-plus/test";
 import {
   createSidebarSection,
   moveSidebarSection,
+  moveSidebarSectionTo,
   parseSectionMenuId,
+  sectionReorderIndex,
   resolveThreadSectionId,
   splitThreadsIntoCustomSections,
   staleSectionTags,
   renameSidebarSection,
   setSidebarSectionIcon,
+  tagsWithSection,
   withSectionMenuItems,
 } from "./customSections.logic";
 
@@ -122,6 +125,30 @@ describe("section definitions", () => {
     const sections = [section("a"), section("b"), section("c")];
     expect(moveSidebarSection(sections, "c", -1).map((s) => s.id)).toEqual(["a", "c", "b"]);
     expect(moveSidebarSection(sections, "a", -1).map((s) => s.id)).toEqual(["a", "b", "c"]);
+    expect(moveSidebarSectionTo(sections, "a", 2).map((s) => s.id)).toEqual(["b", "c", "a"]);
+    expect(moveSidebarSectionTo(sections, "c", 0).map((s) => s.id)).toEqual(["c", "a", "b"]);
+  });
+
+  it("drops a dragged section once its leading edge crosses a neighbor's middle", () => {
+    const rects = [
+      { top: 0, height: 40 },
+      { top: 40, height: 100 },
+      { top: 140, height: 40 },
+    ];
+    expect(sectionReorderIndex(rects, 0, 0)).toBe(0);
+    expect(sectionReorderIndex(rects, 0, 40)).toBe(0);
+    expect(sectionReorderIndex(rects, 0, 60)).toBe(1);
+    expect(sectionReorderIndex(rects, 0, 150)).toBe(2);
+    expect(sectionReorderIndex(rects, 2, -40)).toBe(2);
+    expect(sectionReorderIndex(rects, 2, -60)).toBe(1);
+    expect(sectionReorderIndex(rects, 2, -150)).toBe(0);
+  });
+});
+
+describe("tagsWithSection", () => {
+  it("replaces every section tag and keeps the rest", () => {
+    expect(tagsWithSection(["x", "section:a", "section:b"], "c")).toEqual(["section:c", "x"]);
+    expect(tagsWithSection(["x", "section:a"], null)).toEqual(["x"]);
   });
 });
 

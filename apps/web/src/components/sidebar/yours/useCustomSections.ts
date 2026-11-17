@@ -1,4 +1,4 @@
-import { scopeThreadRef } from "@t3tools/client-runtime/environment";
+import { scopedThreadKey, scopeThreadRef } from "@t3tools/client-runtime/environment";
 import type { EnvironmentThreadShell } from "@t3tools/client-runtime/state/models";
 import {
   isAtomCommandInterrupted,
@@ -16,10 +16,12 @@ import {
   createSidebarSection,
   deleteSidebarSection,
   moveSidebarSection,
+  moveSidebarSectionTo,
   renameSidebarSection,
   setSidebarSectionIcon,
   sidebarSectionTag,
   staleSectionTags,
+  tagsWithSection,
   updateSidebarSection,
 } from "./customSections.logic";
 
@@ -64,6 +66,8 @@ export const sectionDefinitions = {
     void writeSections((sections) => updateSidebarSection(sections, id, { collapsed })),
   move: (id: string, offset: -1 | 1) =>
     void writeSections((sections) => moveSidebarSection(sections, id, offset)),
+  moveTo: (id: string, toIndex: number) =>
+    void writeSections((sections) => moveSidebarSectionTo(sections, id, toIndex)),
   delete: (id: string) => void writeSections((sections) => deleteSidebarSection(sections, id)),
 };
 
@@ -81,6 +85,37 @@ export type SectionThread = Pick<
   EnvironmentThreadShell,
   "environmentId" | "id" | "pinnedAt" | "settledOverride" | "source"
 >;
+
+/**
+ * Section moves this client just made, keyed by thread, so a dropped thread lands in its new
+ * section at once instead of after its server echoes the tag. Null means "out of every section".
+ */
+const useOptimisticSectionMoves = create<{ moves: ReadonlyMap<string, string | null> }>(() => ({
+  moves: new Map(),
+}));
+
+// Covers the tag's round trip; after it the thread's real tags are the only truth again.
+const OPTIMISTIC_MOVE_HOLD_MS = 2000;
+
+function setOptimisticMove(key: string, sectionId: string | null | undefined) {
+  useOptimisticSectionMoves.setState(({ moves }) => {
+    const next = new Map(moves);
+    if (sectionId === undefined) next.delete(key);
+    else next.set(key, sectionId);
+    return { moves: next };
+  });
+}
+
+/** Reads a thread's tags with this client's pending section move applied. */
+export function useOptimisticSectionTags() {
+  const moves = useOptimisticSectionMoves((state) => state.moves);
+  return (thread: Pick<SectionThread, "environmentId" | "id" | "source">) => {
+    if (moves.size === 0) return thread.source.tags;
+    const key = scopedThreadKey(scopeThreadRef(thread.environmentId, thread.id));
+    const move = moves.get(key);
+    return move === undefined ? thread.source.tags : tagsWithSection(thread.source.tags, move);
+  };
+}
 
 /**
  * Moves threads between sections by tagging them on their server. With `actions`, moving a
@@ -110,17 +145,40 @@ export function useSectionMembership(
     return true;
   };
 
+  const optimistically = async (
+    thread: SectionThread,
+    sectionId: string | null,
+    write: () => Promise<boolean>,
+  ) => {
+    const key = scopedThreadKey(scopeThreadRef(thread.environmentId, thread.id));
+    setOptimisticMove(key, sectionId);
+    const ok = await write();
+    if (!ok) {
+      setOptimisticMove(key, undefined);
+      return false;
+    }
+    setTimeout(() => {
+      if (useOptimisticSectionMoves.getState().moves.get(key) === sectionId) {
+        setOptimisticMove(key, undefined);
+      }
+    }, OPTIMISTIC_MOVE_HOLD_MS);
+    return true;
+  };
+
   const moveToSection = async (thread: SectionThread, sectionId: string) => {
-    if (!(await clearSections(thread, sectionId))) return;
     const tag = sidebarSectionTag(sectionId);
-    if (!(thread.source.tags ?? []).includes(tag) && !(await writeTag(thread, tag, true))) return;
+    const moved = await optimistically(thread, sectionId, async () => {
+      if (!(await clearSections(thread, sectionId))) return false;
+      return (thread.source.tags ?? []).includes(tag) || writeTag(thread, tag, true);
+    });
+    if (!moved) return;
     const ref = scopeThreadRef(thread.environmentId, thread.id);
     if (actions && thread.pinnedAt != null) await actions.unpinThread(ref);
     if (actions && thread.settledOverride === "settled") await actions.unsettleThread(ref);
   };
 
   const removeFromSection = async (thread: SectionThread) => {
-    await clearSections(thread, null);
+    await optimistically(thread, null, () => clearSections(thread, null));
   };
 
   return { moveToSection, removeFromSection };

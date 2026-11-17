@@ -174,11 +174,51 @@ export function moveSidebarSection(
   offset: -1 | 1,
 ): SidebarCustomSection[] {
   const index = sections.findIndex((section) => section.id === id);
-  const target = index + offset;
-  if (index === -1 || target < 0 || target >= sections.length) return [...sections];
-  const next = [...sections];
-  [next[index], next[target]] = [next[target]!, next[index]!];
-  return next;
+  return index === -1 ? [...sections] : moveSidebarSectionTo(sections, id, index + offset);
+}
+
+/** Moves a section to `toIndex` in the list without it; out-of-range indices clamp. */
+export function moveSidebarSectionTo(
+  sections: ReadonlyArray<SidebarCustomSection>,
+  id: string,
+  toIndex: number,
+): SidebarCustomSection[] {
+  const moving = sections.find((section) => section.id === id);
+  if (moving === undefined) return [...sections];
+  const rest = sections.filter((section) => section !== moving);
+  const at = Math.max(0, Math.min(rest.length, toIndex));
+  return [...rest.slice(0, at), moving, ...rest.slice(at)];
+}
+
+/**
+ * Where a dragged section lands. Going down, it passes a section once its bottom edge crosses
+ * that section's middle; going up, once its top edge does. Rects are where everything started.
+ */
+export function sectionReorderIndex(
+  rects: ReadonlyArray<{ readonly top: number; readonly height: number }>,
+  fromIndex: number,
+  deltaY: number,
+): number {
+  const dragged = rects[fromIndex];
+  if (dragged === undefined) return fromIndex;
+  const top = dragged.top + deltaY;
+  const bottom = top + dragged.height;
+  let index = fromIndex;
+  for (const [i, rect] of rects.entries()) {
+    const middle = rect.top + rect.height / 2;
+    if (i > fromIndex && bottom > middle) index += 1;
+    else if (i < fromIndex && top < middle) index -= 1;
+  }
+  return index;
+}
+
+/** A thread's tags as they will be once it moves into `sectionId` (null: out of every section). */
+export function tagsWithSection(
+  tags: ReadonlyArray<string> | undefined,
+  sectionId: string | null,
+): string[] {
+  const rest = (tags ?? []).filter((tag) => !tag.startsWith(SIDEBAR_SECTION_TAG_PREFIX));
+  return sectionId === null ? rest : [sidebarSectionTag(sectionId), ...rest];
 }
 
 export function deleteSidebarSection(

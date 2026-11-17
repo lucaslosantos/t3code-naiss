@@ -1,4 +1,4 @@
-import type { CollisionDetection } from "@dnd-kit/core";
+import type { Collision, CollisionDetection } from "@dnd-kit/core";
 
 import { sidebarMarkerId } from "../../Sidebar.logic";
 import { parseSidebarSectionDropId } from "./customSections.logic";
@@ -6,9 +6,9 @@ import { parseSidebarSectionDropId } from "./customSections.logic";
 const CUSTOM_SECTIONS_MARKER_ID = sidebarMarkerId("custom-sections");
 
 /**
- * A pointer inside a custom section targets that section. Everywhere else the list's own
- * detection runs over the list's items only, so rows nested in sections never become
- * reorder targets and the sections block is never a slot to drop into.
+ * A pointer inside a custom section collides with the dragged row itself, carrying the section
+ * in its data: dnd-kit only moves the drag source while `over` is a sortable item. Elsewhere the
+ * list's own detection runs over the list's items only.
  */
 export function withCustomSectionCollisions(
   base: CollisionDetection,
@@ -18,7 +18,8 @@ export function withCustomSectionCollisions(
     const pointer = args.pointerCoordinates;
     if (pointer) {
       for (const container of args.droppableContainers) {
-        if (parseSidebarSectionDropId(String(container.id)) === null) continue;
+        const sectionId = parseSidebarSectionDropId(String(container.id));
+        if (sectionId === null) continue;
         const rect = args.droppableRects.get(container.id);
         if (
           rect &&
@@ -27,7 +28,7 @@ export function withCustomSectionCollisions(
           pointer.y >= rect.top &&
           pointer.y <= rect.bottom
         ) {
-          return [{ id: container.id, data: { droppableContainer: container, value: 0 } }];
+          return [{ id: args.active.id, data: { sectionId } }];
         }
       }
     }
@@ -39,4 +40,12 @@ export function withCustomSectionCollisions(
       }),
     });
   };
+}
+
+/** The custom section a drag is over, from the collisions `withCustomSectionCollisions` made. */
+export function customSectionDropTarget(
+  collisions: ReadonlyArray<Collision> | null | undefined,
+): string | null {
+  const sectionId: unknown = collisions?.[0]?.data?.sectionId;
+  return typeof sectionId === "string" ? sectionId : null;
 }

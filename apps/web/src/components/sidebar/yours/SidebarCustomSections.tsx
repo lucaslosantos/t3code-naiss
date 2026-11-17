@@ -1,10 +1,18 @@
 import { useDndContext, useDroppable } from "@dnd-kit/core";
 import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
+import { scopedThreadKey, scopeThreadRef } from "@t3tools/client-runtime/environment";
 import { settlePromise } from "@t3tools/client-runtime/state/runtime";
 import { SIDEBAR_SECTION_COLORS } from "@t3tools/contracts";
 import { ChevronDownIcon, EllipsisIcon, PlusIcon } from "lucide-react";
-import { type ReactNode, useRef, useState, type KeyboardEvent as ReactKeyboardEvent } from "react";
+import {
+  type CSSProperties,
+  type KeyboardEvent as ReactKeyboardEvent,
+  type PointerEvent as ReactPointerEvent,
+  type ReactNode,
+  useRef,
+  useState,
+} from "react";
 
 import { readLocalApi } from "~/localApi";
 import { cn } from "~/lib/utils";
@@ -12,9 +20,11 @@ import { animateSidebarLayoutChanges, sidebarMarkerId } from "../../Sidebar.logi
 import { Button } from "../../ui/button";
 import { Tooltip, TooltipPopup, TooltipTrigger } from "../../ui/tooltip";
 import { SIDEBAR_SORTABLE_DRAG_DISABLED } from "../SidebarThreadRow";
+import { customSectionDropTarget } from "./customSections.drag";
 import {
   type CustomSectionGroup,
   normalizeSectionColor,
+  sectionReorderIndex,
   sidebarSectionDropId,
 } from "./customSections.logic";
 import { SECTION_COLOR_STYLES, SectionGlyph, SectionIconPicker } from "./SectionIconPicker";
@@ -45,20 +55,34 @@ export function SidebarCustomSections<T extends SectionThread>(props: {
     disabled: SIDEBAR_SORTABLE_DRAG_DISABLED,
     animateLayoutChanges: animateSidebarLayoutChanges,
   });
-  const dragging = useDndContext().active !== null;
+  const dnd = useDndContext();
+  const dragging = dnd.active !== null;
+  const dropTargetId = dragging ? customSectionDropTarget(dnd.collisions) : null;
+  const activeId = dnd.active === null ? null : String(dnd.active.id);
+  // The block's drag transform makes it a stacking context; lift it so a row dragged out of
+  // a section stays above the rows below.
+  const draggingFromInside =
+    activeId !== null &&
+    props.groups.some((group) =>
+      group.threads.some(
+        (thread) => scopedThreadKey(scopeThreadRef(thread.environmentId, thread.id)) === activeId,
+      ),
+    );
+  const { listRef, reordering, startReorder, reorderStyleFor, consumeReorderClick } =
+    useSectionReorder(props.groups.length);
   return (
     <li
       ref={setNodeRef}
       data-thread-selection-safe
       data-testid="sidebar-custom-sections"
-      className="list-none"
+      className={cn("list-none", draggingFromInside && "relative z-30")}
       style={{
         transform: CSS.Translate.toString(transform),
         transition,
         visibility: transform?.scaleY === 0 ? "hidden" : undefined,
       }}
     >
-      <ul className="flex flex-col gap-px pt-1">
+      <ul ref={listRef} className="flex flex-col gap-0.5 pt-1">
         {props.groups.map((group, index) => (
           <CustomSection
             key={group.section.id}
@@ -66,6 +90,11 @@ export function SidebarCustomSections<T extends SectionThread>(props: {
             isFirst={index === 0}
             isLast={index === props.groups.length - 1}
             dragging={dragging}
+            isDropTarget={dropTargetId === group.section.id}
+            reorderStyle={reorderStyleFor(index)}
+            reordering={reordering}
+            onHeaderPointerDown={(event) => startReorder(event, group.section.id, index)}
+            consumeHeaderClick={consumeReorderClick}
             renderThread={props.renderThread}
           />
         ))}
@@ -74,17 +103,122 @@ export function SidebarCustomSections<T extends SectionThread>(props: {
   );
 }
 
+const SECTION_DRAG_DISTANCE = 4;
+
+/**
+ * Drag a section's header to move the whole section. Plain pointer tracking rather than
+ * dnd-kit: the sections sit inside the thread list's drag context, and a nested context
+ * would capture the thread rows inside them.
+ */
+function useSectionReorder(count: number) {
+  const listRef = useRef<HTMLUListElement | null>(null);
+  const suppressClickRef = useRef(false);
+  const [drag, setDrag] = useState<{
+    id: string;
+    from: number;
+    rects: Array<{ top: number; height: number }>;
+    deltaY: number;
+  } | null>(null);
+
+  const start = (event: ReactPointerEvent<HTMLElement>, id: string, from: number) => {
+    if (event.button !== 0 || count < 2 || event.pointerType === "touch") return;
+    const startY = event.clientY;
+    const pointerId = event.pointerId;
+    const handle = event.currentTarget;
+    let started: { rects: Array<{ top: number; height: number }> } | null = null;
+    let deltaY = 0;
+    const onMove = (moveEvent: PointerEvent) => {
+      if (moveEvent.pointerId !== pointerId) return;
+      deltaY = moveEvent.clientY - startY;
+      if (started === null) {
+        if (Math.abs(deltaY) < SECTION_DRAG_DISTANCE || listRef.current === null) return;
+        started = {
+          rects: Array.from(listRef.current.children, (child) => {
+            const rect = child.getBoundingClientRect();
+            return { top: rect.top, height: rect.height };
+          }),
+        };
+        handle.setPointerCapture(pointerId);
+      }
+      moveEvent.preventDefault();
+      setDrag({ id, from, rects: started.rects, deltaY });
+    };
+    const finish = (commit: boolean) => {
+      window.removeEventListener("pointermove", onMove);
+      window.removeEventListener("pointerup", onUp);
+      window.removeEventListener("pointercancel", onCancel);
+      window.removeEventListener("keydown", onKey, true);
+      if (started === null) return;
+      // The release lands on the header as a click; it must not also fold the section.
+      suppressClickRef.current = true;
+      setTimeout(() => {
+        suppressClickRef.current = false;
+      }, 0);
+      if (commit) {
+        const to = sectionReorderIndex(started.rects, from, deltaY);
+        if (to !== from) sectionDefinitions.moveTo(id, to);
+      }
+      setDrag(null);
+    };
+    const onUp = (upEvent: PointerEvent) => {
+      if (upEvent.pointerId === pointerId) finish(true);
+    };
+    const onCancel = (cancelEvent: PointerEvent) => {
+      if (cancelEvent.pointerId === pointerId) finish(false);
+    };
+    const onKey = (keyEvent: KeyboardEvent) => {
+      if (keyEvent.key !== "Escape" || started === null) return;
+      keyEvent.preventDefault();
+      keyEvent.stopPropagation();
+      finish(false);
+    };
+    window.addEventListener("pointermove", onMove);
+    window.addEventListener("pointerup", onUp);
+    window.addEventListener("pointercancel", onCancel);
+    window.addEventListener("keydown", onKey, true);
+  };
+
+  const target = drag === null ? null : sectionReorderIndex(drag.rects, drag.from, drag.deltaY);
+  const styleFor = (index: number): CSSProperties | undefined => {
+    if (drag === null || target === null) return undefined;
+    if (index === drag.from) return { transform: `translateY(${drag.deltaY}px)` };
+    const dragged = drag.rects[drag.from]!;
+    const next = drag.rects[1];
+    const gap = next && drag.rects[0] ? next.top - drag.rects[0].top - drag.rects[0].height : 0;
+    const shift =
+      drag.from < target && index > drag.from && index <= target
+        ? -(dragged.height + gap)
+        : target < drag.from && index >= target && index < drag.from
+          ? dragged.height + gap
+          : 0;
+    return { transform: `translateY(${shift}px)`, transition: "transform 150ms ease-out" };
+  };
+
+  return {
+    listRef,
+    reordering: drag === null ? null : drag.id,
+    startReorder: start,
+    reorderStyleFor: styleFor,
+    consumeReorderClick: () => suppressClickRef.current,
+  };
+}
+
 function CustomSection<T extends SectionThread>(props: {
   group: RenderedSectionGroup<T>;
   isFirst: boolean;
   isLast: boolean;
   dragging: boolean;
+  isDropTarget: boolean;
+  reorderStyle: CSSProperties | undefined;
+  reordering: string | null;
+  onHeaderPointerDown: (event: ReactPointerEvent<HTMLElement>) => void;
+  consumeHeaderClick: () => boolean;
   renderThread: (thread: T) => ReactNode;
 }) {
   const { section, threads, members } = props.group;
   const count = members.length;
   const { removeFromSection } = useSectionMembership();
-  const { setNodeRef, isOver } = useDroppable({ id: sidebarSectionDropId(section.id) });
+  const { setNodeRef } = useDroppable({ id: sidebarSectionDropId(section.id) });
   const renaming = useSectionRenameStore((state) => state.renamingId === section.id);
   const setRenamingId = useSectionRenameStore((state) => state.setRenamingId);
   const menuButtonRef = useRef<HTMLButtonElement | null>(null);
@@ -158,14 +292,17 @@ function CustomSection<T extends SectionThread>(props: {
     })();
   };
 
-  const highlighted = props.dragging && isOver;
+  const highlighted = props.isDropTarget;
+  const lifted = props.reordering === section.id;
   return (
     <li
       ref={setNodeRef}
       data-testid="sidebar-custom-section"
+      style={props.reorderStyle}
       className={cn(
-        "group/custom-section relative list-none rounded-md before:pointer-events-none before:absolute before:inset-y-1.5 before:left-0 before:w-0.5 before:rounded-full before:opacity-0 before:transition-opacity motion-reduce:before:transition-none",
+        "group/custom-section relative list-none rounded-md transition-colors duration-150 before:pointer-events-none before:absolute before:inset-y-1.5 before:left-0 before:w-0.5 before:rounded-full before:opacity-0 before:transition-opacity motion-reduce:transition-none motion-reduce:before:transition-none",
         highlighted && ["before:opacity-100", styles.drop],
+        lifted && "z-20 bg-sidebar shadow-lg ring-1 ring-sidebar-foreground/8",
       )}
     >
       {renaming ? (
@@ -183,7 +320,11 @@ function CustomSection<T extends SectionThread>(props: {
             type="button"
             data-sidebar-row={rowId}
             aria-expanded={!section.collapsed}
-            onClick={() => sectionDefinitions.setCollapsed(section.id, !section.collapsed)}
+            onPointerDown={props.onHeaderPointerDown}
+            onClick={() => {
+              if (props.consumeHeaderClick()) return;
+              sectionDefinitions.setCollapsed(section.id, !section.collapsed);
+            }}
             onDoubleClick={() => setRenamingId(section.id)}
             onContextMenu={(event) => {
               event.preventDefault();
@@ -191,7 +332,8 @@ function CustomSection<T extends SectionThread>(props: {
             }}
             className={cn(
               "flex h-8 w-full cursor-pointer items-center gap-2 rounded-md ps-8.5 pe-2 text-left text-xs font-semibold outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring/70",
-              highlighted || props.dragging
+              lifted && "cursor-grabbing",
+              highlighted || props.dragging || lifted
                 ? "text-sidebar-foreground"
                 : "text-sidebar-foreground/75 hover:text-sidebar-foreground",
             )}
@@ -219,7 +361,14 @@ function CustomSection<T extends SectionThread>(props: {
             />
           </span>
           {/* Sits over the count, which hides on hover or focus, and left of the chevron. */}
-          <span className="absolute top-0 right-6 flex h-8 items-center gap-0.5 opacity-0 focus-within:opacity-100 group-hover/custom-section:opacity-100 pointer-coarse:opacity-100">
+          <span
+            className={cn(
+              "absolute top-0 right-6 flex h-8 items-center gap-0.5 opacity-0 focus-within:opacity-100 pointer-coarse:opacity-100",
+              props.reordering === null &&
+                !props.dragging &&
+                "group-hover/custom-section:opacity-100",
+            )}
+          >
             <Tooltip>
               <TooltipTrigger
                 render={
@@ -266,15 +415,18 @@ function CustomSection<T extends SectionThread>(props: {
           </ul>
         </div>
       ) : !section.collapsed ? (
+        // Same height idle and mid-drag, so nothing shifts under the pointer.
         <div
           className={cn(
-            "mx-0.5 mb-1 flex h-9 items-center justify-center rounded-md border border-dashed text-xs",
+            "ms-3 me-0.5 mb-1 flex h-7 items-center rounded-md border border-dashed ps-2.5 text-xs transition-colors duration-150 motion-reduce:transition-none",
             highlighted
               ? styles.dropHint
-              : "border-sidebar-foreground/15 text-sidebar-muted-foreground",
+              : props.dragging
+                ? "border-sidebar-foreground/15 text-sidebar-muted-foreground"
+                : "border-transparent text-sidebar-muted-foreground/60",
           )}
         >
-          Drag threads here
+          {props.dragging ? "Drop here" : "No threads"}
         </div>
       ) : null}
     </li>
