@@ -1,8 +1,8 @@
 # shellcheck shell=bash
-# Shared settings and helpers for the "T3 Code (Yours)" local packaging scripts.
+# Shared settings and helpers for the "T3 Code (naiss)" local packaging scripts.
 # Sourced by build.sh, apply.sh, rollback.sh and install.sh; not meant to run on its own.
 
-YOURS_APP_NAME="T3 Code (luko)"
+YOURS_APP_NAME="T3 Code (naiss)"
 LEGACY_APP_NAME="T3 Code (Yours)"
 YOURS_APP_ID="com.t3tools.t3code.yours"
 OFFICIAL_APP_NAME="T3 Code (Beta)"
@@ -44,7 +44,7 @@ verify_bundle() {
   id="$(plist_value "$app" CFBundleIdentifier || true)"
   name="$(plist_value "$app" CFBundleName || true)"
   [[ "$id" == "$YOURS_APP_ID" ]] || die "$app has bundle id '$id', expected '$YOURS_APP_ID'."
-  [[ "$name" == "$YOURS_APP_NAME" || ( "$app" == "$YOURS_PREVIOUS_APP" && "$name" == "$LEGACY_APP_NAME" ) ]] || die "$app has name '$name', expected '$YOURS_APP_NAME'."
+  [[ "$name" == "$YOURS_APP_NAME" || ( "$app" == "$YOURS_PREVIOUS_APP" && ( "$name" == "$LEGACY_APP_NAME" || "$name" == "T3 Code (luko)" ) ) ]] || die "$app has name '$name', expected '$YOURS_APP_NAME'."
   # Without app-update.yml electron-updater has no feed, so the official updater can never replace the fork.
   [[ ! -e "$app/Contents/Resources/app-update.yml" ]] ||
     die "$app contains app-update.yml; refusing a build that could auto-update to the official app."

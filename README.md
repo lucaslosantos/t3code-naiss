@@ -4,9 +4,9 @@
   </a>
 </p>
 
-<h1 align="center">T3 Code</h1>
+<h1 align="center">T3 Code (naiss)</h1>
 
-<p align="center">The open-source control plane for coding agents.</p>
+<p align="center">The Naiss team fork of T3 Code. On Apple silicon, build and install this fork with <code>scripts/yours/install.sh</code> after installing the workspace dependencies. The links below are for upstream T3 Code.</p>
 
 <p align="center">
   <a href="https://t3.codes/download"><strong>Download</strong></a> ·

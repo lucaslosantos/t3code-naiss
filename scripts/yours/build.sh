@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Builds "T3 Code (Yours)" for Apple silicon and stages it at ~/.t3/yours-staged.app.
+# Builds "T3 Code (naiss)" for Apple silicon and stages it at ~/.t3/yours-staged.app.
 # Unsigned by Apple (ad-hoc signature), no notarization, no update feed. Never touches the
 # running or installed app; run apply.sh (or install.sh) to install the staged build.
 set -euo pipefail
@@ -46,6 +46,7 @@ unset GITHUB_REPOSITORY T3CODE_DESKTOP_UPDATE_REPOSITORY T3CODE_DESKTOP_MOCK_UPD
 # No Apple signing or notarization.
 unset T3CODE_DESKTOP_SIGNED CSC_LINK CSC_KEY_PASSWORD CSC_NAME APPLE_API_KEY APPLE_API_KEY_ID APPLE_API_ISSUER APPLE_ID APPLE_TEAM_ID T3CODE_APPLE_TEAM_ID
 export CSC_IDENTITY_AUTO_DISCOVERY=false
+export VITE_NAISS_FORK=1
 export T3CODE_DESKTOP_PRODUCT_NAME="$YOURS_APP_NAME"
 export T3CODE_DESKTOP_APP_ID="$YOURS_APP_ID"
 
@@ -62,7 +63,7 @@ if ! command -v cargo >/dev/null && [[ "${T3CODE_DESKTOP_REUSE_RESOURCE_MONITOR:
   export T3CODE_DESKTOP_REUSE_RESOURCE_MONITOR=1
 fi
 
-out_dir="$(mktemp -d "${TMPDIR:-/tmp}/t3code-yours-build.XXXXXX")"
+out_dir="$(mktemp -d "${TMPDIR:-/tmp}/t3code-naiss-build.XXXXXX")"
 trap 'rm -rf "$out_dir"' EXIT
 
 log "Building $YOURS_APP_NAME ($(git rev-parse --short HEAD)) into $out_dir..."
