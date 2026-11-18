@@ -1,6 +1,7 @@
 import { Rive, RuntimeLoader } from "@rive-app/canvas";
 import wasmUrl from "@rive-app/canvas/rive.wasm?url";
 import fallbackUrl from "@rive-app/canvas/rive_fallback.wasm?url";
+import { createPortal } from "react-dom";
 import * as Schema from "effect/Schema";
 import { useEffect, useEffectEvent, useRef, useState } from "react";
 
@@ -86,39 +87,42 @@ export default function ThreadMascot({ mood }: { mood: keyof typeof moods }) {
   }, [mood]);
 
   if (!companionUrl) return null;
-  return (
-    <canvas
-      ref={canvas}
-      width={152}
-      height={152}
-      aria-hidden="true"
-      className="absolute z-20 size-[76px] touch-none cursor-grab select-none active:cursor-grabbing"
-      style={{
-        left: `calc(${100 * clamp(x)}% - ${size * clamp(x)}px)`,
-        top: `calc(${100 * clamp(y)}% - ${size * clamp(y)}px)`,
-      }}
-      onPointerDown={(event) => {
-        if (!event.isPrimary || event.button !== 0) return;
-        const box = event.currentTarget.getBoundingClientRect();
-        drag.current = { dx: event.clientX - box.left, dy: event.clientY - box.top };
-        event.currentTarget.setPointerCapture(event.pointerId);
-      }}
-      onPointerMove={(event) => {
-        if (!drag.current || !event.currentTarget.hasPointerCapture(event.pointerId)) return;
-        const box = event.currentTarget.offsetParent?.getBoundingClientRect();
-        if (!box) return;
-        setMoving({
-          x: clamp((event.clientX - box.left - drag.current.dx) / Math.max(1, box.width - size)),
-          y: clamp((event.clientY - box.top - drag.current.dy) / Math.max(1, box.height - size)),
-        });
-      }}
-      onPointerUp={() => {
-        if (moving) savePosition(moving);
-      }}
-      onLostPointerCapture={() => {
-        drag.current = null;
-        setMoving(null);
-      }}
-    />
+  return createPortal(
+    <div className="pointer-events-none fixed inset-0 z-30">
+      <canvas
+        ref={canvas}
+        width={152}
+        height={152}
+        aria-hidden="true"
+        className="pointer-events-auto absolute size-[76px] touch-none cursor-grab select-none active:cursor-grabbing"
+        style={{
+          left: `calc(${100 * clamp(x)}% - ${size * clamp(x)}px)`,
+          top: `calc(${100 * clamp(y)}% - ${size * clamp(y)}px)`,
+        }}
+        onPointerDown={(event) => {
+          if (!event.isPrimary || event.button !== 0) return;
+          const box = event.currentTarget.getBoundingClientRect();
+          drag.current = { dx: event.clientX - box.left, dy: event.clientY - box.top };
+          event.currentTarget.setPointerCapture(event.pointerId);
+        }}
+        onPointerMove={(event) => {
+          if (!drag.current || !event.currentTarget.hasPointerCapture(event.pointerId)) return;
+          const box = event.currentTarget.offsetParent?.getBoundingClientRect();
+          if (!box) return;
+          setMoving({
+            x: clamp((event.clientX - box.left - drag.current.dx) / Math.max(1, box.width - size)),
+            y: clamp((event.clientY - box.top - drag.current.dy) / Math.max(1, box.height - size)),
+          });
+        }}
+        onPointerUp={() => {
+          if (moving) savePosition(moving);
+        }}
+        onLostPointerCapture={() => {
+          drag.current = null;
+          setMoving(null);
+        }}
+      />
+    </div>,
+    document.body,
   );
 }
