@@ -230,6 +230,15 @@
   ],
   "packageOverrides": [
     {
+      "name": "@rive-app/canvas",
+      "license": "MIT",
+      "sourceUrl": "https://github.com/rive-app/rive-wasm",
+      "generatedNotice": {
+        "licenseId": "MIT",
+        "copyrights": ["Copyright (c) 2020-2021 Rive"]
+      }
+    },
+    {
       "name": "entities",
       "version": "8.1.0",
       "license": "BSD-2-Clause",

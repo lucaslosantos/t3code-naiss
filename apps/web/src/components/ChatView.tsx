@@ -124,6 +124,8 @@ import { resolveThreadReferenceCopyTarget } from "@t3tools/client-runtime/thread
 import { resolveTerminalSessionLabel } from "@t3tools/shared/terminalLabels";
 import { useAtomValue } from "@effect/atom-react";
 import {
+  lazy,
+  Suspense,
   type MouseEvent as ReactMouseEvent,
   type SetStateAction,
   use,
@@ -440,6 +442,8 @@ type ChatViewProps =
 const DismissedFallbackWindowSchema = Schema.NullOr(Schema.String);
 
 const ignoreComposerFocus = () => {};
+
+const ThreadMascot = lazy(() => import("./yours/mascot/ThreadMascot"));
 
 export default function ChatView(props: ChatViewProps) {
   const {
@@ -3344,6 +3348,21 @@ export default function ChatView(props: ChatViewProps) {
       ref={setWorkspaceLayoutElement}
       className="relative flex min-h-0 min-w-0 flex-1 overflow-hidden bg-background"
     >
+      {!embedded && !backgroundThread && (
+        <Suspense fallback={null}>
+          <ThreadMascot
+            mood={
+              activePendingApproval || activePendingUserInput
+                ? "waiting"
+                : serverRuntime?.status === "failed"
+                  ? "failed"
+                  : isWorking
+                    ? "working"
+                    : "idle"
+            }
+          />
+        </Suspense>
+      )}
       {embedded ? null : (
         <DeviceSetupDialogHost
           threadKey={activeThreadKey}

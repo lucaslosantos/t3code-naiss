@@ -24,6 +24,12 @@ export PATH="$REPO_ROOT/node_modules/.bin:$PATH"
 command -v vp >/dev/null || die "vp is not on PATH."
 command -v node >/dev/null || die "node is not on PATH."
 
+artwork="${HOME}/.t3/luko-artwork"
+if [[ -f "$artwork/companion.riv" ]]; then
+  cp "$artwork/companion.riv" "$REPO_ROOT/apps/web/src/components/yours/mascot/companion.riv"
+  export T3CODE_LUKO_ARTWORK="$artwork"
+fi
+
 started=$(date +%s)
 cd "$REPO_ROOT"
 
