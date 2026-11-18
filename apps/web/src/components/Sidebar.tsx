@@ -133,6 +133,7 @@ import { useSidebarProjectGroups } from "../hooks/useSidebarProjectGroups";
 import { isCommandPaletteOpen, openCommandPalette } from "../commandPaletteBus";
 import { registerSettleAndAdvance } from "../settleAndAdvance";
 import { startNewThreadFromContext } from "../lib/chatThreadActions";
+import { useThreadCardLayoutMenu, applyThreadCardLayout } from "./sidebar/yours/threadCardLayout";
 import { getClientSettings, useClientSettings } from "../hooks/useSettings";
 import { useCopyToClipboard } from "../hooks/useCopyToClipboard";
 import { useLocalStorage } from "../hooks/useLocalStorage";
@@ -2674,6 +2675,7 @@ export default function Sidebar({ routeReveal }: { routeReveal: SidebarRouteReve
     },
   );
 
+  const threadCardLayoutMenu = useThreadCardLayoutMenu();
   const handleThreadContextMenu = useStableCallback(
     (threadRef: ScopedThreadRef, position: { x: number; y: number }, source: ContextMenuSource) => {
       void (async () => {
@@ -2755,12 +2757,14 @@ export default function Sidebar({ routeReveal }: { routeReveal: SidebarRouteReve
                 currentSectionId,
                 beforeId: "rename",
               },
+              threadCardLayoutMenu(threadKey),
             ),
             position,
             source,
           ),
         );
         if (clicked._tag === "Failure" || clicked.value === null) return;
+        if (applyThreadCardLayout(clicked.value, threadKey)) return;
         const sectionAction = parseSectionMenuId(clicked.value);
         if (sectionAction !== null) {
           if (!checkThreadOperations([thread])) return;

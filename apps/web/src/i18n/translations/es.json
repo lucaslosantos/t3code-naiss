@@ -17,6 +17,8 @@
   "cd5452cc9e13c818": "Agrupación de proyectos",
   "6147d6fc04079525": "Orden de proyectos",
   "bdf39fd139a04325": "Sección Working",
+  "e28ddc8b0be2973a": "Tarjetas de hilo compactas",
+  "f5d72c38e6e78b81": "Mostrar subagentes en la barra lateral",
   "76f3c3e2f8dd0120": "Confirmaciones",
   "859e386f8af841f0": "Confirmar al desfijar hilos",
   "de0d79b74d3e4af6": "Confirmar al archivar hilos",
@@ -30,6 +32,8 @@
   "83ca942c7163904f": "Combina los repositorios coincidentes de distintos entornos.",
   "609da998ca13521e": "Orden de los proyectos en el selector de la barra lateral y en la paleta de comandos.",
   "b4c541137a76b351": "Agrupa los hilos en curso y en seguimiento en una sección Working. Vuelven arriba de la bandeja de entrada cuando te necesitan. La boring sidebar de Labs no tiene sección Working.",
+  "599d1b173c2fe7d1": "Muestra el icono del proyecto, el título y la actividad en una línea. Haz clic derecho en un hilo para elegir su diseño.",
+  "8c3b9a570093a48a": "Agrupa los subagentes y las tareas delegadas bajo el hilo que los inició y muestra su estado en tiempo real.",
   "e815f49e5abedcfd": "Pregunta antes de desfijar un hilo de la sección de fijados.",
   "41210f99adeeba78": "Pide un segundo clic en la acción de archivar antes de archivar un hilo.",
   "84f3d2cefc8d2a74": "Pregunta antes de eliminar un hilo y su historial de chat.",
@@ -75,5 +79,9 @@
   "1d5052cbe70d0b28": "Confirmación al archivar",
   "d5dd27a4eb853248": "Confirmación al eliminar",
   "5503ef439beb8d42": "Confirmación al cerrar terminales",
-  "86b43caa9ff41ea2": "Atajo para salir"
+  "86b43caa9ff41ea2": "Atajo para salir",
+  "c51ced8b2b5a6771": "Usar el ajuste de la barra lateral",
+  "0bde867dbbca0798": "Compacto",
+  "e831414dd1710fe8": "Original",
+  "3fb977f7a3af9d29": "Diseño de la tarjeta del hilo"
 }

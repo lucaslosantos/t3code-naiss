@@ -407,6 +407,11 @@ export const VoiceTranscriptionDestination = Schema.Union([
 ]);
 export type VoiceTranscriptionDestination = typeof VoiceTranscriptionDestination.Type;
 
+const ThreadCardLayoutOverrides = Schema.Record(
+  Schema.String,
+  Schema.Literals(["compact", "original"]),
+);
+
 export const ClientSettingsSchema = Schema.Struct({
   notificationMode: NotificationMode.pipe(
     Schema.withDecodingDefault(Effect.succeed("off" as const)),
@@ -554,6 +559,10 @@ export const ClientSettingsSchema = Schema.Struct({
     Schema.withDecodingDefault(Effect.succeed({})),
   ),
   sidebarWorkingShelfEnabled: Schema.Boolean.pipe(Schema.withDecodingDefault(Effect.succeed(true))),
+  compactThreadCards: Schema.Boolean.pipe(Schema.withDecodingDefault(Effect.succeed(true))),
+  threadCardLayoutOverrides: ThreadCardLayoutOverrides.pipe(
+    Schema.withDecodingDefault(Effect.succeed({})),
+  ),
   sidebarCustomSections: SidebarCustomSections.pipe(Schema.withDecodingDefault(Effect.succeed([]))),
   sidebarShowSubagents: Schema.Boolean.pipe(Schema.withDecodingDefault(Effect.succeed(true))),
   sidebarProjectGroupingMode: SidebarProjectGroupingMode.pipe(
@@ -2119,6 +2128,8 @@ export const ClientSettingsPatch = Schema.Struct({
   threadDetailsUsageEnabled: Schema.optionalKey(Schema.Boolean),
   threadDetailsItems: Schema.optionalKey(Schema.Record(Schema.String, Schema.Boolean)),
   sidebarWorkingShelfEnabled: Schema.optionalKey(Schema.Boolean),
+  compactThreadCards: Schema.optionalKey(Schema.Boolean),
+  threadCardLayoutOverrides: Schema.optionalKey(ThreadCardLayoutOverrides),
   sidebarCustomSections: Schema.optionalKey(SidebarCustomSections),
   sidebarShowSubagents: Schema.optionalKey(Schema.Boolean),
   sidebarProjectGroupingMode: Schema.optionalKey(SidebarProjectGroupingMode),

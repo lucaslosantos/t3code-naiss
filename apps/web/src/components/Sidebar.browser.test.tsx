@@ -297,8 +297,19 @@ describe("sidebar thread menu", () => {
     await userEvent.keyboard("{Shift>}{F10}{/Shift}");
     await vi.waitFor(() => expect(show).toHaveBeenCalledTimes(1));
     expect(show.mock.lastCall?.[2]).toBe("keyboard");
+    using restore = new DisposableStack();
+    const previousSettings = getClientSettings();
+    restore.defer(() => __setClientSettingsForTests(previousSettings));
+    __setClientSettingsForTests(previousSettings);
+    show.mockResolvedValueOnce("card-layout:original");
     await userEvent.click(row, { button: "right" });
     await vi.waitFor(() => expect(show).toHaveBeenCalledTimes(2));
+    const card = row.element().closest<HTMLElement>("[data-sidebar-row]")!;
+    await vi.waitFor(() =>
+      expect(getClientSettings().threadCardLayoutOverrides[card.dataset.sidebarRow!]).toBe(
+        "original",
+      ),
+    );
     expect(show.mock.lastCall?.[2]).toBe("mouse");
   });
 });
