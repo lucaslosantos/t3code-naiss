@@ -37,24 +37,33 @@ export default function ThreadMascot({ mood }: { mood: keyof typeof moods }) {
     positionSchema,
   );
   const [moving, setMoving] = useState<typeof position | null>(null);
-  const drag = useRef<{ dx: number; dy: number } | null>(null);
+  const drag = useRef<{
+    dx: number;
+    dy: number;
+    startX: number;
+    startY: number;
+    moved: boolean;
+  } | null>(null);
   const { x, y } = moving ?? position;
+
+  function playReaction(reaction: string) {
+    const rive = player.current;
+    if (!rive) return;
+    clearTimeout(timer.current);
+    const reduced = matchMedia("(prefers-reduced-motion: reduce)").matches;
+    rive.play("State Machine 1");
+    if (!reduced) rive.viewModelInstance?.trigger(reaction)?.trigger();
+    timer.current = setTimeout(() => rive.pause(), reduced ? 60 : 1600);
+  }
 
   const react = useEffectEvent((nextMood: keyof typeof moods) => {
     const rive = player.current;
     if (!rive) return;
-    clearTimeout(timer.current);
     const [skin, reaction] = moods[nextMood];
     const instance = rive.viewModelByName("mascot")?.instanceByName(skin);
     if (!instance) return;
     rive.bindViewModelInstance(instance);
-    rive.play("State Machine 1");
-    if (!matchMedia("(prefers-reduced-motion: reduce)").matches)
-      instance.trigger(reaction)?.trigger();
-    timer.current = setTimeout(
-      () => rive.pause(),
-      matchMedia("(prefers-reduced-motion: reduce)").matches ? 60 : 1600,
-    );
+    playReaction(reaction);
   });
   const onLoad = useEffectEvent(() => react(mood));
   // oxlint-disable-next-line t3code/no-unreasoned-state-sync -- the canvas owns a native Rive instance for its mounted lifetime
@@ -102,19 +111,36 @@ export default function ThreadMascot({ mood }: { mood: keyof typeof moods }) {
         onPointerDown={(event) => {
           if (!event.isPrimary || event.button !== 0) return;
           const box = event.currentTarget.getBoundingClientRect();
-          drag.current = { dx: event.clientX - box.left, dy: event.clientY - box.top };
+          drag.current = {
+            dx: event.clientX - box.left,
+            dy: event.clientY - box.top,
+            startX: event.clientX,
+            startY: event.clientY,
+            moved: false,
+          };
           event.currentTarget.setPointerCapture(event.pointerId);
         }}
         onPointerMove={(event) => {
           if (!drag.current || !event.currentTarget.hasPointerCapture(event.pointerId)) return;
           const box = event.currentTarget.offsetParent?.getBoundingClientRect();
           if (!box) return;
+          if (!drag.current.moved) {
+            if (
+              Math.hypot(event.clientX - drag.current.startX, event.clientY - drag.current.startY) <
+              5
+            )
+              return;
+            drag.current.moved = true;
+            playReaction("flap");
+          }
           setMoving({
             x: clamp((event.clientX - box.left - drag.current.dx) / Math.max(1, box.width - size)),
             y: clamp((event.clientY - box.top - drag.current.dy) / Math.max(1, box.height - size)),
           });
         }}
-        onPointerUp={() => {
+        onPointerUp={(event) => {
+          if (!drag.current || !event.currentTarget.hasPointerCapture(event.pointerId)) return;
+          playReaction(drag.current.moved ? "perk" : "boop");
           if (moving) savePosition(moving);
         }}
         onLostPointerCapture={() => {

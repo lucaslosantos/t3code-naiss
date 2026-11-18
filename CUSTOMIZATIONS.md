@@ -2,6 +2,8 @@
 
 Newest first. Each entry: date, what changed (plain words), merge commit.
 
+- 2026-11-19: Tap the companion for a boop, or drag it to see it flap and perk up on release.
+
 - 2026-11-18: The companion can be dragged from a conversation onto the sidebar and back.
 
 - 2026-11-18: T3 Code (luko) wears the Naiss logo and has a draggable companion that reacts to the current thread. (merge aa8ab49341)
