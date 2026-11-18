@@ -2,7 +2,7 @@
 
 Newest first. Each entry: date, what changed (plain words), merge commit.
 
-- 2026-11-18: T3 Code (luko) wears the Naiss logo and has a draggable companion that reacts to the current thread.
+- 2026-11-18: T3 Code (luko) wears the Naiss logo and has a draggable companion that reacts to the current thread. (merge aa8ab49341)
 
 - 2026-11-18: Dragging in the sidebar is smooth now: threads follow the cursor and land in a section instantly, and you can drag a section by its header to reorder sections. Empty sections show a quiet "No threads" line instead of a big dashed box. (merge 05cf3bc466)
 
