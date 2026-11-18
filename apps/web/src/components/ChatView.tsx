@@ -3348,21 +3348,6 @@ export default function ChatView(props: ChatViewProps) {
       ref={setWorkspaceLayoutElement}
       className="relative flex min-h-0 min-w-0 flex-1 overflow-hidden bg-background"
     >
-      {!embedded && !backgroundThread && (
-        <Suspense fallback={null}>
-          <ThreadMascot
-            mood={
-              activePendingApproval || activePendingUserInput
-                ? "waiting"
-                : serverRuntime?.status === "failed"
-                  ? "failed"
-                  : isWorking
-                    ? "working"
-                    : "idle"
-            }
-          />
-        </Suspense>
-      )}
       {embedded ? null : (
         <DeviceSetupDialogHost
           threadKey={activeThreadKey}
@@ -3467,6 +3452,21 @@ export default function ChatView(props: ChatViewProps) {
               {...conversationArea}
               className="relative flex min-h-0 flex-1 flex-col bg-background"
             >
+              {!embedded && !backgroundThread && (
+                <Suspense fallback={null}>
+                  <ThreadMascot
+                    mood={
+                      activePendingApproval || activePendingUserInput
+                        ? "waiting"
+                        : serverRuntime?.status === "failed"
+                          ? "failed"
+                          : isWorking
+                            ? "working"
+                            : "idle"
+                    }
+                  />
+                </Suspense>
+              )}
               <WorkspaceMutationIdContext value={workspaceMutationId}>
                 <ThreadTimeline
                   pendingApprovals={pendingApprovals}
