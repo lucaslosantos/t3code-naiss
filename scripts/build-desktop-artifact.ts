@@ -3793,7 +3793,9 @@ const buildDesktopArtifactUnlocked = Effect.fn("buildDesktopArtifactUnlocked")(f
   yield* applyWebBrandAssets(webAssetBrand, "apps/server/dist/client");
   const lukoArtwork = yield* Config.String("T3CODE_LUKO_ARTWORK").pipe(Config.withDefault(""));
   if (lukoArtwork) {
-    yield* fs.copy(path.join(lukoArtwork, "web"), path.join(repoRoot, "apps/server/dist/client"));
+    yield* fs.copy(path.join(lukoArtwork, "web"), path.join(repoRoot, "apps/server/dist/client"), {
+      overwrite: true,
+    });
   }
   yield* Effect.log(`[desktop-artifact] Applied ${webAssetBrand} web client branding.`);
   yield* validateBundledClientAssets(path.dirname(bundledClientEntry));
