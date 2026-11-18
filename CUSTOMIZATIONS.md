@@ -2,7 +2,7 @@
 
 Newest first. Each entry: date, what changed (plain words), merge commit.
 
-- 2026-11-19: The team fork is named T3 Code (naiss) and installs over its earlier names.
+- 2026-11-19: The team fork is named T3 Code (naiss) and installs over its earlier names. (merge 92afccc271)
 
 - 2026-11-19: Tap the companion for a boop, or drag it to see it flap and perk up on release.
 
