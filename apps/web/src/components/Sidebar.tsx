@@ -221,15 +221,18 @@ import {
 } from "./Sidebar.drag";
 import { SidebarPointerSensor } from "./Sidebar.pointer";
 import { SidebarCustomSections } from "./sidebar/yours/SidebarCustomSections";
-import { withCustomSectionCollisions } from "./sidebar/yours/customSections.drag";
+import {
+  customSectionDropTarget,
+  withCustomSectionCollisions,
+} from "./sidebar/yours/customSections.drag";
 import {
   parseSectionMenuId,
-  parseSidebarSectionDropId,
   splitThreadsIntoCustomSections,
   withSectionMenuItems,
 } from "./sidebar/yours/customSections.logic";
 import {
   sectionDefinitions,
+  useOptimisticSectionTags,
   useSectionMembership,
   useSectionRenameStore,
 } from "./sidebar/yours/useCustomSections";
@@ -507,11 +510,12 @@ function useSidebarThreads(input: {
     clockKey: `${nowMinute}:${snoozeWakeClock}:${inboxReturnsVersion}`,
   });
   const customSections = useClientSettings((s) => s.sidebarCustomSections);
+  const sectionTagsOf = useOptimisticSectionTags();
   const customSplit = splitThreadsIntoCustomSections({
     sections: customSections,
     activeThreads: unsplitPartition.activeThreads,
     workingThreads: unsplitPartition.workingThreads,
-    tagsOf: (thread) => thread.source.tags,
+    tagsOf: sectionTagsOf,
     sort: sortThreadsForSidebar,
   });
   const partition = {
@@ -1960,7 +1964,11 @@ export default function Sidebar({ routeReveal }: { routeReveal: SidebarRouteReve
     const activeKey = String(event.active.id);
     contextDragKeyRef.current = activeKey;
     const activeSection = sectionByThreadKey.get(activeKey);
-    if (activeSection === undefined) return;
+    if (activeSection === undefined) {
+      // Fork-only: rows in custom sections sit above the pinned label's limit.
+      dragLabelOffsetRef.current = Number.NEGATIVE_INFINITY;
+      return;
+    }
     listMotionRef.current?.suspend();
     const list = threadListRef.current;
     const viewport = list?.closest('[data-slot="scroll-area-viewport"]');
@@ -2084,7 +2092,7 @@ export default function Sidebar({ routeReveal }: { routeReveal: SidebarRouteReve
     const activeKey = String(event.active.id);
     const thread = threadByKey.get(activeKey);
     if (thread === undefined) return false;
-    const targetSectionId = event.over ? parseSidebarSectionDropId(String(event.over.id)) : null;
+    const targetSectionId = customSectionDropTarget(event.collisions);
     const fromSectionId = customSectionIdByKey.get(activeKey) ?? null;
     if (targetSectionId === null && fromSectionId === null) return false;
     if (targetSectionId === fromSectionId || !checkThreadOperations([thread])) return true;
@@ -2102,7 +2110,12 @@ export default function Sidebar({ routeReveal }: { routeReveal: SidebarRouteReve
         : { ...current, targetSection: target?.section ?? null },
     );
   };
-  const sortableIds = sidebarListItems.map(sidebarListItemId);
+  const listSortableIds = sidebarListItems.map(sidebarListItemId);
+  // Fork-only: section rows sort after the list's items, so the list's indices stay put.
+  const sortableIds = [
+    ...listSortableIds,
+    ...customSectionGroups.flatMap((group) => group.threads.map(threadShellKey)),
+  ];
   // Keep non-drag orders constant to preserve sorting strategy and row identity during streaming.
   const { settledOrder: draggedSettledOrder, activeOrder: draggedActiveOrder } =
     dragState === null
@@ -3428,7 +3441,7 @@ export default function Sidebar({ routeReveal }: { routeReveal: SidebarRouteReve
                 autoScroll={isContextDrag ? false : SIDEBAR_AUTO_SCROLL}
                 collisionDetection={withCustomSectionCollisions(
                   dndCollisionDetection,
-                  new Set(sortableIds),
+                  new Set(listSortableIds),
                 )}
                 modifiers={dndModifiers}
                 onDragStart={handleThreadDragStart}
