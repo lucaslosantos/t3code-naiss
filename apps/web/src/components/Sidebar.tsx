@@ -2102,9 +2102,10 @@ export default function Sidebar({ routeReveal }: { routeReveal: SidebarRouteReve
     return true;
   };
   const handleThreadDragOver = (event: DragOverEvent) => {
-    const target = event.over
-      ? resolveSidebarDropTarget(sidebarListItems, String(event.active.id), String(event.over.id))
-      : null;
+    const target =
+      event.over && customSectionDropTarget(event.collisions) === null
+        ? resolveSidebarDropTarget(sidebarListItems, String(event.active.id), String(event.over.id))
+        : null;
     setDragState((current) =>
       current === null || current.activeKey !== String(event.active.id)
         ? current

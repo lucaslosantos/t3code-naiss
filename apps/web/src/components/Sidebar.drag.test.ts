@@ -15,6 +15,12 @@ import {
   type SidebarSection,
 } from "./Sidebar.logic";
 
+import {
+  customSectionDropTarget,
+  withCustomSectionCollisions,
+} from "./sidebar/yours/customSections.drag";
+import { sidebarSectionDropId } from "./sidebar/yours/customSections.logic";
+
 const thread = (key: string, section: SidebarSection): SidebarListItem => ({
   kind: "thread",
   key,
@@ -99,6 +105,28 @@ describe("sidebar collision detection", () => {
       pointerCoordinates: null,
     } satisfies Parameters<CollisionDetection>[0];
   }
+
+  it("drops into the visible custom section after the pinned label shifts the list", () => {
+    const args = collisionArgs();
+    const sectionId = sidebarSectionDropId("current");
+    const cached = args.collisionRect;
+    const visible = {
+      ...cached,
+      top: cached.bottom + 30,
+      bottom: cached.bottom + 30 + cached.height,
+    };
+    const sectionNode = { getBoundingClientRect: () => visible } as HTMLElement;
+    const detector = withCustomSectionCollisions(() => [{ id: "pinned" }], new Set(["pinned"]));
+    const result = detector({
+      ...args,
+      pointerCoordinates: { x: 10, y: visible.top + 8 },
+      droppableContainers: [
+        { ...args.droppableContainers[0]!, id: sectionId, node: { current: sectionNode } },
+      ],
+      droppableRects: new Map([[sectionId, cached]]),
+    });
+    expect(customSectionDropTarget(result)).toBe("current");
+  });
 
   it.each([
     [false, sidebarMarkerId("settled-header")],
