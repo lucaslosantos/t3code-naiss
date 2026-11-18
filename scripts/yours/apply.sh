@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Installs the build staged by build.sh: backs up the database (copy only), quits
-# "T3 Code (Yours)" gracefully, keeps the current app as ~/.t3/yours-previous.app,
+# "T3 Code (naiss)" gracefully, keeps the current app as ~/.t3/yours-previous.app,
 # moves the staged app to /Applications and relaunches it.
 #
 # Run with --detach from inside the app (for example from an agent turn): the work then
@@ -22,16 +22,20 @@ fi
 
 verify_bundle "$YOURS_STAGED_APP"
 current="$YOURS_INSTALLED_APP"
-if [[ ! -d "$current" && -d "/Applications/$LEGACY_APP_NAME.app" ]]; then
-  current="/Applications/$LEGACY_APP_NAME.app"
+for legacy in "T3 Code (luko)" "$LEGACY_APP_NAME"; do
+  [[ ! -d "$current" && -d "/Applications/$legacy.app" ]] || continue
+  current="/Applications/$legacy.app"
   [[ "$(plist_value "$current" CFBundleIdentifier)" == "$YOURS_APP_ID" ]] || die "Unexpected legacy app identity."
-fi
+done
 if [[ -d "$current" ]]; then
   quit_app_gracefully "$(plist_value "$current" CFBundleName)" "$current"
 fi
 backup_database
 
 if [[ -d "$current" ]]; then
+  registrar="/System/Library/Frameworks/CoreServices.framework/Frameworks/LaunchServices.framework/Support/lsregister"
+  "$registrar" -u "$current" >/dev/null 2>&1 || true
+  "$registrar" -u "$YOURS_PREVIOUS_APP" >/dev/null 2>&1 || true
   rm -rf "$YOURS_PREVIOUS_APP"
   mv "$current" "$YOURS_PREVIOUS_APP"
   log "Kept the previous build at $YOURS_PREVIOUS_APP."

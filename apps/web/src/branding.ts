@@ -22,10 +22,12 @@ export const HOSTED_APP_CHANNEL_LABEL = resolveHostedAppChannelLabel(HOSTED_APP_
 export const APP_BASE_NAME = injectedDesktopAppBranding?.baseName ?? "T3 Code";
 export const APP_STAGE_LABEL =
   injectedDesktopAppBranding?.stageLabel ??
-  resolveWebAppStageLabel({
-    hostedAppChannel: HOSTED_APP_CHANNEL,
-    development: import.meta.env.DEV,
-  });
+  (import.meta.env.VITE_NAISS_FORK === "1"
+    ? "naiss"
+    : resolveWebAppStageLabel({
+        hostedAppChannel: HOSTED_APP_CHANNEL,
+        development: import.meta.env.DEV,
+      }));
 export const APP_DISPLAY_NAME =
   injectedDesktopAppBranding?.displayName ??
   formatAppDisplayName({ baseName: APP_BASE_NAME, stageLabel: APP_STAGE_LABEL });

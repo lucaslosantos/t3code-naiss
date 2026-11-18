@@ -1,7 +1,7 @@
 // Fork-only: the "Make it mine" sidebar button. Kept in its own folder so upstream merges stay clean.
 
 /** Folder name of this fork's checkout. The button opens threads in that project. */
-export const FORK_FOLDER_NAME = "t3code-yours";
+export const FORK_FOLDER_NAME = "t3code-naiss";
 
 export type MakeItMineAction = "change" | "update" | "undo" | "rollback";
 
@@ -53,6 +53,10 @@ export function findForkProject<T extends { readonly workspaceRoot: string }>(
   return (
     projects.find(
       (project) => folderName(project.workspaceRoot).toLowerCase() === FORK_FOLDER_NAME,
-    ) ?? null
+    ) ??
+    projects.find(
+      (project) => folderName(project.workspaceRoot).toLowerCase() === "t3code-yours",
+    ) ??
+    null
   );
 }

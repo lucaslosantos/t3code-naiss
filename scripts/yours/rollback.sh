@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Swaps /Applications/T3 Code (Yours).app with ~/.t3/yours-previous.app and relaunches.
+# Swaps /Applications/T3 Code (naiss).app with ~/.t3/yours-previous.app and relaunches.
 # The swap is symmetric, so running it again rolls forward. Backs up the database first.
 # Use --detach when running from inside the app; logs go to ~/.t3/logs/yours-rollback.log.
 set -euo pipefail

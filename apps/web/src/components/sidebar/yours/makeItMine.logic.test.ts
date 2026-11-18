@@ -9,6 +9,8 @@ describe("findForkProject", () => {
       { workspaceRoot: "/Users/me/Projects/T3Code-Yours/" },
     ];
     expect(findForkProject(projects)).toBe(projects[1]);
+    const renamed = { workspaceRoot: "/Users/me/Projects/t3code-naiss" };
+    expect(findForkProject([...projects, renamed])).toBe(renamed);
   });
 
   it("returns null when the fork is not a project", () => {

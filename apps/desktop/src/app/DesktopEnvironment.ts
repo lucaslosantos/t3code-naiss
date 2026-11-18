@@ -167,10 +167,13 @@ const make = Effect.fn("desktop.environment.make")(function* (
     input.isPackaged && input.platform === "win32"
       ? path.join(input.resourcesPath, "server.asar")
       : appRoot;
-  const branding = resolveDesktopAppBranding({
-    isDevelopment,
-    appVersion: input.appVersion,
-  });
+  const branding: DesktopAppBranding =
+    input.isPackaged && input.resourcesPath.includes("/T3 Code (naiss).app/")
+      ? { baseName: APP_BASE_NAME, stageLabel: "naiss", displayName: "T3 Code (naiss)" }
+      : resolveDesktopAppBranding({
+          isDevelopment,
+          appVersion: input.appVersion,
+        });
   const displayName = branding.displayName;
   const stateDir = resolveDesktopStateDir({
     baseDir,
