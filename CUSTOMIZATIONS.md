@@ -2,7 +2,7 @@
 
 Newest first. Each entry: date, what changed (plain words), merge commit.
 
-- 2026-11-19: Compact thread cards put the project icon beside the title and activity at the right, with an appearance setting and per-thread override.
+- 2026-11-19: Compact thread cards put the project icon beside the title and activity at the right, with an appearance setting and per-thread override. (merge dbf3b0d159)
 
 - 2026-11-19: The team fork is named T3 Code (naiss) and installs over its earlier names. (merge 92afccc271)
 
