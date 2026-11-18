@@ -3,10 +3,8 @@ import type { Collision, CollisionDetection } from "@dnd-kit/core";
 import { sidebarMarkerId } from "../../Sidebar.logic";
 import { parseSidebarSectionDropId } from "./customSections.logic";
 
-const CUSTOM_SECTIONS_MARKER_ID = sidebarMarkerId("custom-sections");
-
 /**
- * A pointer inside a custom section collides with the dragged row itself, carrying the section
+ * A pointer inside a custom section collides with its sortable parent, carrying the section
  * in its data: dnd-kit only moves the drag source while `over` is a sortable item. Elsewhere the
  * list's own detection runs over the list's items only.
  */
@@ -20,15 +18,16 @@ export function withCustomSectionCollisions(
       for (const container of args.droppableContainers) {
         const sectionId = parseSidebarSectionDropId(String(container.id));
         if (sectionId === null) continue;
-        const rect = args.droppableRects.get(container.id);
+        // The sortable parent moves when the pinned preview opens; cached child rects miss that transform.
+        const rect = container.node.current?.getBoundingClientRect();
         if (
           rect &&
           pointer.x >= rect.left &&
           pointer.x <= rect.right &&
-          pointer.y >= rect.top &&
-          pointer.y <= rect.bottom
+          pointer.y >= rect.top - 1 &&
+          pointer.y <= rect.bottom + 1
         ) {
-          return [{ id: args.active.id, data: { sectionId } }];
+          return [{ id: sidebarMarkerId("custom-sections"), data: { sectionId } }];
         }
       }
     }
@@ -36,7 +35,7 @@ export function withCustomSectionCollisions(
       ...args,
       droppableContainers: args.droppableContainers.filter((container) => {
         const id = String(container.id);
-        return listIds.has(id) && id !== CUSTOM_SECTIONS_MARKER_ID;
+        return listIds.has(id);
       }),
     });
   };

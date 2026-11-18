@@ -40,7 +40,9 @@ export function createSidebarCollisionDetection(
   let previousPointerY = options.activationY;
   let boundarySection: "pinned" | "active" | undefined;
   return (args) => {
-    let collisions = closestCenter(args);
+    let collisions = closestCenter(args).filter(
+      (hit) => hit.id !== sidebarMarkerId("custom-sections"),
+    );
     const pointer = args.pointerCoordinates;
     const items = options.items;
     const source = items?.find((item) => item.kind === "thread" && item.key === args.active.id);
@@ -54,7 +56,11 @@ export function createSidebarCollisionDetection(
       const previousY = previousPointerY ?? pointer.y;
       previousPointerY = pointer.y;
       if (pointer.x >= boundary.left && pointer.x <= boundary.right) {
-        if (pointer.y < previousY && pointer.y <= boundary.bottom) boundarySection = "pinned";
+        const customSections = args.droppableContainers
+          .find((container) => container.id === sidebarMarkerId("custom-sections"))
+          ?.node.current?.getBoundingClientRect();
+        if (pointer.y < previousY && pointer.y <= (customSections?.top ?? boundary.bottom))
+          boundarySection = "pinned";
         else if (pointer.y > previousY && pointer.y >= boundary.top) boundarySection = "active";
         const nextHeader = (["working-header", "snoozed-header", "settled-header"] as const)
           .map((marker) =>
@@ -110,7 +116,9 @@ export function createSidebarSortingStrategy(input: {
 
   function project({ rects, activeIndex, overIndex }: Layout) {
     const active = items[activeIndex];
-    const over = items[overIndex] ?? active;
+    const hit = items[overIndex];
+    const over =
+      hit?.kind === "marker" && hit.marker === "custom-sections" ? active : (hit ?? active);
     if (active?.kind !== "thread" || !over || !rects[0]) return [];
     const target = resolveSidebarDropTarget(items, active.key, sidebarListItemId(over));
     if (!target) return [];
