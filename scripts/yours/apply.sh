@@ -21,16 +21,23 @@ if detach_if_requested "$SCRIPT_PATH" "$YOURS_LOG_DIR/yours-apply.log"; then
 fi
 
 verify_bundle "$YOURS_STAGED_APP"
-quit_app_gracefully "$YOURS_APP_NAME" "$YOURS_INSTALLED_APP"
+current="$YOURS_INSTALLED_APP"
+if [[ ! -d "$current" && -d "/Applications/$LEGACY_APP_NAME.app" ]]; then
+  current="/Applications/$LEGACY_APP_NAME.app"
+  [[ "$(plist_value "$current" CFBundleIdentifier)" == "$YOURS_APP_ID" ]] || die "Unexpected legacy app identity."
+fi
+if [[ -d "$current" ]]; then
+  quit_app_gracefully "$(plist_value "$current" CFBundleName)" "$current"
+fi
 backup_database
 
-if [[ -d "$YOURS_INSTALLED_APP" ]]; then
+if [[ -d "$current" ]]; then
   rm -rf "$YOURS_PREVIOUS_APP"
-  mv "$YOURS_INSTALLED_APP" "$YOURS_PREVIOUS_APP"
+  mv "$current" "$YOURS_PREVIOUS_APP"
   log "Kept the previous build at $YOURS_PREVIOUS_APP."
 fi
 if ! mv "$YOURS_STAGED_APP" "$YOURS_INSTALLED_APP"; then
-  [[ -d "$YOURS_PREVIOUS_APP" && ! -e "$YOURS_INSTALLED_APP" ]] && mv "$YOURS_PREVIOUS_APP" "$YOURS_INSTALLED_APP"
+  [[ -d "$YOURS_PREVIOUS_APP" && ! -e "$YOURS_INSTALLED_APP" ]] && mv "$YOURS_PREVIOUS_APP" "$current"
   die "Could not move the staged build into place; the previous app was restored."
 fi
 log "Installed $(plist_value "$YOURS_INSTALLED_APP" CFBundleShortVersionString) at $YOURS_INSTALLED_APP."
