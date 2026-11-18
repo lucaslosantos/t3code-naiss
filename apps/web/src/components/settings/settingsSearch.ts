@@ -348,6 +348,12 @@ export const SETTINGS_SEARCH_ITEMS = [
     searchTerms: ["wide full width column layout messages composer monitor"],
   },
   {
+    id: "compact-thread-cards",
+    title: msg("Compact thread cards"),
+    to: "/settings/general",
+    searchTerms: ["sidebar workspace title project icon timestamp compact original layout"],
+  },
+  {
     id: "terminal-placement",
     title: "Terminal position",
     to: "/settings/appearance",

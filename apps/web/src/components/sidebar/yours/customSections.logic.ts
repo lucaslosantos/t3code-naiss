@@ -256,14 +256,15 @@ export function parseSectionMenuId(
 }
 
 /** "Move to section" items for a thread menu, inserted before `beforeId` (end when missing). */
-export function withSectionMenuItems<T extends string>(
+export function withSectionMenuItems<T extends string, Extra extends string = never>(
   items: ReadonlyArray<ContextMenuItem<T>>,
   input: {
     readonly sections: ReadonlyArray<Pick<SidebarCustomSection, "id" | "name">>;
     readonly currentSectionId: string | null;
     readonly beforeId: T;
   },
-): ContextMenuItem<T | SectionMenuId>[] {
+  ...extraItems: ContextMenuItem<Extra>[]
+): ContextMenuItem<T | SectionMenuId | Extra>[] {
   const added: ContextMenuItem<SectionMenuId>[] = [
     {
       id: "section:menu",
@@ -284,5 +285,5 @@ export function withSectionMenuItems<T extends string>(
   ];
   const index = items.findIndex((item) => item.id === input.beforeId);
   const at = index === -1 ? items.length : index;
-  return [...items.slice(0, at), ...added, ...items.slice(at)];
+  return [...items.slice(0, at), ...added, ...items.slice(at), ...extraItems];
 }

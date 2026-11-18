@@ -939,6 +939,24 @@ export function GeneralSettingsPanel() {
           }
         />
         <SettingsRow
+          {...setting("compact-thread-cards")}
+          description={
+            <T>
+              Show the project icon, title, and activity on one line. Right-click a thread to choose
+              its layout.
+            </T>
+          }
+          control={
+            <Switch
+              checked={settings.compactThreadCards}
+              onCheckedChange={(checked) =>
+                updateSettings({ compactThreadCards: Boolean(checked) })
+              }
+              aria-label={gt("Compact thread cards")}
+            />
+          }
+        />
+        <SettingsRow
           {...setting("sidebar-subagents")}
           description={
             <T>

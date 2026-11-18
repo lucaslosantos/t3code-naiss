@@ -17,6 +17,8 @@
   "cd5452cc9e13c818": "Agrupamento de projetos",
   "6147d6fc04079525": "Ordem dos projetos",
   "bdf39fd139a04325": "Seção Working",
+  "e28ddc8b0be2973a": "Cartões compactos de conversa",
+  "f5d72c38e6e78b81": "Mostrar subagentes na barra lateral",
   "76f3c3e2f8dd0120": "Confirmações",
   "859e386f8af841f0": "Confirmar ao desafixar conversas",
   "de0d79b74d3e4af6": "Confirmar ao arquivar conversas",
@@ -30,6 +32,8 @@
   "83ca942c7163904f": "Combina repositórios correspondentes entre ambientes.",
   "609da998ca13521e": "Ordem dos projetos no seletor da barra lateral e na paleta de comandos.",
   "b4c541137a76b351": "Agrupa as conversas em andamento e em monitoramento em uma seção Working. Elas voltam ao topo da caixa de entrada quando precisam de você. A boring sidebar do Labs não tem seção Working.",
+  "599d1b173c2fe7d1": "Mostre o ícone do projeto, o título e a atividade em uma linha. Clique com o botão direito em uma conversa para escolher o layout.",
+  "8c3b9a570093a48a": "Agrupe os subagentes e as tarefas delegadas abaixo da conversa que os iniciou, com seu status em tempo real.",
   "e815f49e5abedcfd": "Pergunta antes de desafixar uma conversa da seção de fixadas.",
   "41210f99adeeba78": "Exige um segundo clique na ação de arquivar antes de arquivar uma conversa.",
   "84f3d2cefc8d2a74": "Pergunta antes de excluir uma conversa e o histórico do chat.",
@@ -75,5 +79,9 @@
   "1d5052cbe70d0b28": "Confirmação ao arquivar",
   "d5dd27a4eb853248": "Confirmação ao excluir",
   "5503ef439beb8d42": "Confirmação ao fechar terminais",
-  "86b43caa9ff41ea2": "Atalho de saída"
+  "86b43caa9ff41ea2": "Atalho de saída",
+  "c51ced8b2b5a6771": "Usar a configuração da barra lateral",
+  "0bde867dbbca0798": "Compacto",
+  "e831414dd1710fe8": "Original",
+  "3fb977f7a3af9d29": "Layout do cartão da conversa"
 }
