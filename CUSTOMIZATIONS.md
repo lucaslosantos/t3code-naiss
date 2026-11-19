@@ -2,7 +2,7 @@
 
 Newest first. Each entry: date, what changed (plain words), merge commit.
 
-- 2026-11-19: Worktrees show pull request status, stack layers, and chat actions at the upper right, including when the right panel is closed.
+- 2026-11-19: Worktrees show pull request status, stack layers, and chat actions above the tabs inside the right panel.
 
 - 2026-11-19: Dropping a thread into a section follows the visible section as the sidebar shifts during a drag.
 

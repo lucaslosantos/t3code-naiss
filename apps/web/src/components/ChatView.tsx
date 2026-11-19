@@ -3436,7 +3436,6 @@ export default function ChatView(props: ChatViewProps) {
           </header>
         )}
 
-        {!rightPanelOpen && worktreeActions}
         <div className="relative flex min-h-0 min-w-0 flex-1">
           <ThreadFindCanvas
             findOptions={{

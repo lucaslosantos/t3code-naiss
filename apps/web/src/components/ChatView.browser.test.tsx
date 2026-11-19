@@ -581,7 +581,7 @@ it("a mounted thread view lets go of the thread structures it has replaced", asy
   expect(kept).toEqual([]);
 });
 
-it("offers Create PR in a worktree with the right panel closed", async () => {
+it("offers Create PR inside the worktree right panel", async () => {
   await page.viewport(1280, 800);
   const thread = { ...threadWithHistory("worktree-pr", 1), worktreePath: "/repo/worktree-pr" };
   using _environment = installFakeEnvironment([thread]);
@@ -598,7 +598,11 @@ it("offers Create PR in a worktree with the right panel closed", async () => {
     router: false,
   });
   const create = screen.getByRole("button", { name: "Create PR", exact: true });
+  await expect.element(screen.getByTestId("composer-editor")).toBeVisible();
+  await expect.element(create).not.toBeInTheDocument();
+  await screen.getByRole("button", { name: "Toggle right panel", exact: true }).click();
   await expect.element(create).toBeVisible();
+  expect(create.element().closest("[data-preview-panel-mode]")).toBeTruthy();
   await create.click();
   const draft = useComposerDraftStore
     .getState()
