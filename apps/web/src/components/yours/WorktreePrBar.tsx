@@ -11,7 +11,11 @@ import { usePullRequestStack } from "~/state/usePullRequestStack";
 import { useGT } from "gt-react";
 import type { ReactNode } from "react";
 import "./worktreePrBar.css";
-import { useOpenPrLink } from "~/lib/openPullRequestLink";
+import { ArrowUpRightIcon, ChevronDownIcon } from "lucide-react";
+import { openOnHostLabel } from "../pullRequest/pullRequestLinkContextMenu";
+import { readLocalApi } from "~/localApi";
+import { Group, GroupSeparator } from "../ui/group";
+import { Menu, MenuItem, MenuPopup, MenuTrigger } from "../ui/menu";
 import { useRightPanelStore } from "~/rightPanelStore";
 import { useEnvironmentScope } from "~/state/session";
 import { Button } from "../ui/button";
@@ -29,16 +33,33 @@ type BarProps = {
   onPrompt: (prompt: string) => void;
 };
 
-type RowTone = "merged" | "closed" | "blocked" | "ready" | "neutral";
+type RowTone = "merged" | "closed" | "blocked" | "ready" | "neutral" | "draft" | "danger" | "open";
 
 function PrRow({ tone, children }: { tone: RowTone; children: ReactNode }) {
   return (
     <div
       data-worktree-pr-tone={tone}
-      className="flex min-h-12 shrink-0 items-center justify-end gap-3 border-b border-border px-4 py-2.5"
+      className="flex min-h-12 shrink-0 items-center flex-wrap justify-start gap-2 border-b border-border px-4 py-2.5"
     >
       {children}
     </div>
+  );
+}
+
+function BranchPrRow({ pr, children }: { pr: NonNullable<BarProps["pr"]>; children: ReactNode }) {
+  const gt = useGT();
+  const tone = pr.state === "open" && pr.isDraft ? "draft" : pr.state;
+  const label = {
+    open: gt("Open"),
+    draft: gt("Draft"),
+    merged: gt("Merged"),
+    closed: gt("Closed"),
+  }[tone];
+  return (
+    <PrRow tone={tone}>
+      {children}
+      <span data-worktree-pr-state>{label}</span>
+    </PrRow>
   );
 }
 
@@ -63,7 +84,7 @@ function LinkedActions({
     thread.environmentId,
     detail?.capabilities.stacks ? reference : null,
   );
-  if (!detail) return <PrRow tone={pr.state === "open" ? "neutral" : pr.state}>{children}</PrRow>;
+  if (!detail) return <BranchPrRow pr={pr}>{children}</BranchPrRow>;
   const stack = stackQuery.data;
   const index = stack?.layers.findIndex((layer) => layer.number === reference.number) ?? -1;
   const membership =
@@ -107,58 +128,52 @@ function LinkedActions({
     merge:
       "Verify required checks, reviews and stack dependencies, then merge this pull request if ready:",
   };
+  const state = ((): { tone: RowTone; label: string } => {
+    if (detail.state === "merged") return { tone: "merged", label: gt("Merged") };
+    if (detail.state === "closed") return { tone: "closed", label: gt("Closed") };
+    if (detail.mergeability === "conflicting") return { tone: "danger", label: gt("Conflicts") };
+    if (detail.isInMergeQueue) return { tone: "blocked", label: gt("Queued") };
+    if (checks === "failing") return { tone: "danger", label: gt("Checks failing") };
+    if (blocked) return { tone: "blocked", label: blocked };
+    if (detail.isDraft) return { tone: "draft", label: gt("Draft") };
+    if (ready) return { tone: "ready", label: gt("Ready to merge") };
+    return { tone: "open", label: gt("Open") };
+  })();
   return (
-    <PrRow
-      tone={
-        detail.state !== "open"
-          ? detail.state
-          : ready
-            ? "ready"
-            : blocked || action === "resolve"
-              ? "blocked"
-              : "neutral"
-      }
-    >
+    <PrRow tone={state.tone}>
       {children}
       {membership && (
-        <PullRequestStackPopover
-          environmentId={thread.environmentId}
-          reference={reference}
-          membership={membership}
-          onSelect={(target) =>
-            useRightPanelStore.getState().openPullRequest(thread, {
-              projectId: target.projectId,
-              repository: target.repository,
-              number: target.number,
-              ...(target.host ? { host: target.host } : {}),
-            })
-          }
-        />
+        <div data-worktree-pr-stack>
+          <PullRequestStackPopover
+            environmentId={thread.environmentId}
+            reference={reference}
+            membership={membership}
+            onSelect={(target) =>
+              useRightPanelStore.getState().openPullRequest(thread, {
+                projectId: target.projectId,
+                repository: target.repository,
+                number: target.number,
+                ...(target.host ? { host: target.host } : {}),
+              })
+            }
+          />
+        </div>
       )}
-      <span className="ml-auto truncate text-xs text-muted-foreground">
-        {detail.state !== "open"
-          ? detail.state === "merged"
-            ? gt("Merged")
-            : gt("Closed")
-          : blocked
-            ? blocked
-            : ready
-              ? gt("Ready to merge")
-              : detail.isDraft
-                ? gt("Draft")
-                : gt("Open")}
-      </span>
+      <span data-worktree-pr-state>{state.label}</span>
       {action &&
+        !detail.isInMergeQueue &&
         (action !== "merge" || ready) &&
         canWriteSourceControl &&
         detailQuery.isSuccess && (
-          <Button
-            size="compact"
-            variant="outline"
-            onClick={() => onPrompt(`${prompts[action]} ${detail.url}`)}
-          >
-            {labels[action]}
-          </Button>
+          <div className="ml-auto">
+            <Button
+              size="compact"
+              variant="outline"
+              onClick={() => onPrompt(`${prompts[action]} ${detail.url}`)}
+            >
+              {labels[action]}
+            </Button>
+          </div>
         )}
     </PrRow>
   );
@@ -166,22 +181,51 @@ function LinkedActions({
 
 export function WorktreePrBar({ thread, projectId, pr, onPrompt }: BarProps) {
   const gt = useGT();
-  const open = useOpenPrLink(thread);
   const canWrite = useEnvironmentScope(thread.environmentId, AuthSourceControlWriteScope);
-  const link = pr && sourceControlClients.parseChangeRequestUrl(pr.url)?.link;
+  const parsed = pr && sourceControlClients.parseChangeRequestUrl(pr.url);
+  const link = parsed?.link;
   if (!pr && !canWrite) return null;
   if (pr) {
+    const hostLabel = openOnHostLabel(parsed?.definition ?? sourceControlClients.get(undefined));
+    const openExternal = () => void readLocalApi()?.shell.openExternal(pr.url);
     const number = (
-      <Button
-        size="compact"
-        variant="ghost-muted"
-        title={pr.title}
-        onClick={(event) => open(event, pr.url)}
-      >
-        <PullRequestGlyph.pullRequest />#{pr.number}
-      </Button>
+      <Group>
+        <Button
+          size="compact"
+          variant="outline"
+          title={pr.title}
+          onClick={() =>
+            link
+              ? useRightPanelStore.getState().openPullRequest(thread, {
+                  projectId,
+                  host: link.host,
+                  repository: link.repository,
+                  number: pr.number,
+                  url: pr.url,
+                })
+              : openExternal()
+          }
+        >
+          <PullRequestGlyph.pullRequest />#{pr.number}
+        </Button>
+        <GroupSeparator />
+        <Menu>
+          <MenuTrigger
+            aria-label={gt("Pull request options")}
+            render={<Button size="compact" variant="outline" />}
+          >
+            <ChevronDownIcon />
+          </MenuTrigger>
+          <MenuPopup align="start">
+            <MenuItem onClick={openExternal}>
+              <ArrowUpRightIcon />
+              {hostLabel}
+            </MenuItem>
+          </MenuPopup>
+        </Menu>
+      </Group>
     );
-    if (!link) return <PrRow tone={pr.state === "open" ? "neutral" : pr.state}>{number}</PrRow>;
+    if (!link) return <BranchPrRow pr={pr}>{number}</BranchPrRow>;
     return (
       <LinkedActions
         thread={thread}
@@ -195,18 +239,20 @@ export function WorktreePrBar({ thread, projectId, pr, onPrompt }: BarProps) {
   }
   return (
     <PrRow tone="neutral">
-      <Button
-        size="compact"
-        variant="outline"
-        onClick={() =>
-          onPrompt(
-            "Review the changes in this worktree and create a pull request against its intended base branch. If this branch belongs to a stack, preserve its base. Link the pull request to this thread.",
-          )
-        }
-      >
-        <PullRequestGlyph.pullRequest />
-        {gt("Create PR")}
-      </Button>
+      <div className="ml-auto">
+        <Button
+          size="compact"
+          variant="outline"
+          onClick={() =>
+            onPrompt(
+              "Review the changes in this worktree and create a pull request against its intended base branch. If this branch belongs to a stack, preserve its base. Link the pull request to this thread.",
+            )
+          }
+        >
+          <PullRequestGlyph.pullRequest />
+          {gt("Create PR")}
+        </Button>
+      </div>
     </PrRow>
   );
 }

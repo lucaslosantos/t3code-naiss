@@ -112,6 +112,7 @@ query PullRequestWatchFingerprint(
         totalCount
       }
       # totalCount ignores itemTypes and counts every timeline item; filteredCount honours it.
+      isInMergeQueue @include(if: $mergeQueue)
       mergeQueueRemovals: timelineItems(itemTypes: [REMOVED_FROM_MERGE_QUEUE_EVENT])
         @include(if: $mergeQueue) {
         filteredCount

@@ -1016,6 +1016,7 @@ export function toPullRequestWatchFingerprint(
       stateCounts(contexts?.checkRunCountsByState ?? null),
       stateCounts(contexts?.statusContextCountsByState ?? null),
       pr.mergeQueueRemovals?.filteredCount ?? 0,
+      ...(pr.isInMergeQueue ? ["queued"] : []),
     ].join(" "),
     remarks: [
       pr.comments.totalCount,
@@ -1028,6 +1029,7 @@ export function toPullRequestWatchFingerprint(
 }
 
 export interface GitHubPullRequestCore extends GitHubPullRequestDetail {
+  readonly isInMergeQueue?: boolean;
   readonly mergeQueueRemoval?: PullRequestMergeQueueRemoval;
   readonly maintainerCanModify: boolean;
   readonly canEditMaintainerEdits: boolean;
@@ -1050,6 +1052,7 @@ export function toPullRequestCore(result: PullRequestCore.Result): GitHubPullReq
   const contexts = nodesOf(pr.commits)[0]?.commit.statusCheckRollup?.contexts;
   const removal = nodesOf(pr.mergeQueueRemovals).at(-1);
   return {
+    ...(pr.isInMergeQueue === undefined ? {} : { isInMergeQueue: pr.isInMergeQueue }),
     ...(removal === undefined || !("id" in removal)
       ? {}
       : {
