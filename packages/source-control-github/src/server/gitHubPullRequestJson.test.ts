@@ -573,6 +573,7 @@ describe("pull request detail decoding", () => {
     });
     expect(detailOf([], { mergeQueueRemovals: { nodes: [] } }).mergeQueueRemoval).toBeUndefined();
     expect(detailOf([]).mergeQueueRemoval).toBeUndefined();
+    expect(detailOf([], { isInMergeQueue: true })).toMatchObject({ isInMergeQueue: true });
   });
 
   it("shows a re-running check once, as the run that is happening now", () => {
