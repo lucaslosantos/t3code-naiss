@@ -9,7 +9,8 @@ import {
 import { PullRequestGlyph } from "../pullRequest/pullRequestIcons";
 import { usePullRequestStack } from "~/state/usePullRequestStack";
 import { useGT } from "gt-react";
-import { cn } from "~/lib/utils";
+import type { ReactNode } from "react";
+import "./worktreePrBar.css";
 import { useOpenPrLink } from "~/lib/openPullRequestLink";
 import { useRightPanelStore } from "~/rightPanelStore";
 import { useEnvironmentScope } from "~/state/session";
@@ -28,11 +29,30 @@ type BarProps = {
   onPrompt: (prompt: string) => void;
 };
 
+type RowTone = "merged" | "closed" | "blocked" | "ready" | "neutral";
+
+function PrRow({ tone, children }: { tone: RowTone; children: ReactNode }) {
+  return (
+    <div
+      data-worktree-pr-tone={tone}
+      className="flex min-h-12 shrink-0 items-center justify-end gap-3 border-b border-border px-4 py-2.5"
+    >
+      {children}
+    </div>
+  );
+}
+
 function LinkedActions({
   thread,
   reference,
+  pr,
+  children,
   onPrompt,
-}: Pick<BarProps, "thread" | "onPrompt"> & { reference: PullRequestRef }) {
+}: Pick<BarProps, "thread" | "onPrompt"> & {
+  reference: PullRequestRef;
+  pr: NonNullable<BarProps["pr"]>;
+  children: ReactNode;
+}) {
   const gt = useGT();
   const { detail, sharedSummary, canWriteSourceControl, detailQuery } = usePullRequestDetail(
     thread.environmentId,
@@ -43,7 +63,7 @@ function LinkedActions({
     thread.environmentId,
     detail?.capabilities.stacks ? reference : null,
   );
-  if (!detail) return null;
+  if (!detail) return <PrRow tone={pr.state === "open" ? "neutral" : pr.state}>{children}</PrRow>;
   const stack = stackQuery.data;
   const index = stack?.layers.findIndex((layer) => layer.number === reference.number) ?? -1;
   const membership =
@@ -88,7 +108,18 @@ function LinkedActions({
       "Verify required checks, reviews and stack dependencies, then merge this pull request if ready:",
   };
   return (
-    <>
+    <PrRow
+      tone={
+        detail.state !== "open"
+          ? detail.state
+          : ready
+            ? "ready"
+            : blocked || action === "resolve"
+              ? "blocked"
+              : "neutral"
+      }
+    >
+      {children}
       {membership && (
         <PullRequestStackPopover
           environmentId={thread.environmentId}
@@ -104,13 +135,7 @@ function LinkedActions({
           }
         />
       )}
-      <span
-        className={cn(
-          "ml-auto truncate text-xs text-muted-foreground",
-          blocked && "text-warning",
-          ready && "text-success",
-        )}
-      >
+      <span className="ml-auto truncate text-xs text-muted-foreground">
         {detail.state !== "open"
           ? detail.state === "merged"
             ? gt("Merged")
@@ -135,7 +160,7 @@ function LinkedActions({
             {labels[action]}
           </Button>
         )}
-    </>
+    </PrRow>
   );
 }
 
@@ -145,45 +170,43 @@ export function WorktreePrBar({ thread, projectId, pr, onPrompt }: BarProps) {
   const canWrite = useEnvironmentScope(thread.environmentId, AuthSourceControlWriteScope);
   const link = pr && sourceControlClients.parseChangeRequestUrl(pr.url)?.link;
   if (!pr && !canWrite) return null;
+  if (pr) {
+    const number = (
+      <Button
+        size="compact"
+        variant="ghost-muted"
+        title={pr.title}
+        onClick={(event) => open(event, pr.url)}
+      >
+        <PullRequestGlyph.pullRequest />#{pr.number}
+      </Button>
+    );
+    if (!link) return <PrRow tone={pr.state === "open" ? "neutral" : pr.state}>{number}</PrRow>;
+    return (
+      <LinkedActions
+        thread={thread}
+        pr={pr}
+        reference={{ projectId, host: link.host, repository: link.repository, number: pr.number }}
+        onPrompt={onPrompt}
+      >
+        {number}
+      </LinkedActions>
+    );
+  }
   return (
-    <div className="flex min-h-12 shrink-0 items-center justify-end gap-3 border-b border-border px-4 py-2.5">
-      {pr ? (
-        <>
-          <Button
-            size="compact"
-            variant="ghost"
-            title={pr.title}
-            onClick={(event) => open(event, pr.url)}
-          >
-            <PullRequestGlyph.pullRequest />#{pr.number}
-          </Button>
-          {link && (
-            <LinkedActions
-              thread={thread}
-              reference={{
-                projectId,
-                host: link.host,
-                repository: link.repository,
-                number: pr.number,
-              }}
-              onPrompt={onPrompt}
-            />
-          )}
-        </>
-      ) : (
-        <Button
-          size="compact"
-          variant="outline"
-          onClick={() =>
-            onPrompt(
-              "Review the changes in this worktree and create a pull request against its intended base branch. If this branch belongs to a stack, preserve its base. Link the pull request to this thread.",
-            )
-          }
-        >
-          <PullRequestGlyph.pullRequest />
-          {gt("Create PR")}
-        </Button>
-      )}
-    </div>
+    <PrRow tone="neutral">
+      <Button
+        size="compact"
+        variant="outline"
+        onClick={() =>
+          onPrompt(
+            "Review the changes in this worktree and create a pull request against its intended base branch. If this branch belongs to a stack, preserve its base. Link the pull request to this thread.",
+          )
+        }
+      >
+        <PullRequestGlyph.pullRequest />
+        {gt("Create PR")}
+      </Button>
+    </PrRow>
   );
 }
