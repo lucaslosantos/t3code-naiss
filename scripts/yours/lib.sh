@@ -57,7 +57,7 @@ app_is_running() {
 
 # Any process whose executable lives inside the bundle (the app, its helpers, its bundled server).
 bundle_has_processes() {
-  ps -axo comm= | grep -qF -- "$1/Contents/"
+  ps -axo comm= | grep -F -- "$1/Contents/" >/dev/null
 }
 
 # Graceful quit through Apple Events; never signals processes.

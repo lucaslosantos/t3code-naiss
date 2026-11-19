@@ -581,6 +581,31 @@ it("a mounted thread view lets go of the thread structures it has replaced", asy
   expect(kept).toEqual([]);
 });
 
+it("offers Create PR in a worktree with the right panel closed", async () => {
+  await page.viewport(1280, 800);
+  const thread = { ...threadWithHistory("worktree-pr", 1), worktreePath: "/repo/worktree-pr" };
+  using _environment = installFakeEnvironment([thread]);
+  __setClientSettingsForTests({
+    ...DEFAULT_CLIENT_SETTINGS,
+    onboardingCompletedAt: "2026-01-01T00:00:00.000Z",
+  });
+  const router = getRouter(
+    createMemoryHistory({ initialEntries: [`/${ENVIRONMENT_ID}/${thread.id}`] }),
+  );
+  await router.load();
+  await using screen = await render(<AppRoot router={router} />, {
+    // AppRoot supplies the router.
+    router: false,
+  });
+  const create = screen.getByRole("button", { name: "Create PR", exact: true });
+  await expect.element(create).toBeVisible();
+  await create.click();
+  const draft = useComposerDraftStore
+    .getState()
+    .getComposerDraft(scopeThreadRef(ENVIRONMENT_ID, thread.id));
+  expect(draft?.prompt).toContain("create a pull request");
+});
+
 it("a shortcut conditioned on rightPanelOpen sees the thread's open right panel", async () => {
   await page.viewport(1280, 800);
   const thread = threadWithHistory("thread-panel-shortcut", 1);
