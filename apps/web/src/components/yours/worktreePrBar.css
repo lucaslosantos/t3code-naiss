@@ -1,0 +1,25 @@
+[data-worktree-pr-tone="merged"] {
+  --pr-row-ink: light-dark(#7835a2, #cd86ff);
+}
+
+[data-worktree-pr-tone="closed"] {
+  --pr-row-ink: var(--error);
+}
+
+[data-worktree-pr-tone="ready"] {
+  --pr-row-ink: var(--success);
+}
+
+[data-worktree-pr-tone="blocked"] {
+  --pr-row-ink: var(--warning);
+}
+
+[data-worktree-pr-tone]:not([data-worktree-pr-tone="neutral"]) {
+  --contrast-foreground: var(--pr-row-ink);
+  --contrast-muted-foreground: var(--pr-row-ink);
+  --accent: color-mix(in srgb, var(--pr-row-ink) 18%, var(--background));
+  --contrast-input: color-mix(in srgb, var(--pr-row-ink) 42%, transparent);
+  background-color: color-mix(in srgb, var(--pr-row-ink) 15%, var(--background));
+  border-color: color-mix(in srgb, var(--pr-row-ink) 30%, var(--background));
+  color: var(--pr-row-ink);
+}
