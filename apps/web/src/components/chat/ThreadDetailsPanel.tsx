@@ -179,7 +179,7 @@ export function ThreadDetailsPanel(props: ThreadDetailsPanelProps) {
             offersGit &&
             props.activeProjectName !== undefined &&
             (visible.gitActions || (visible.changes && props.isGitRepo)),
-          // Fork-only: review squads need a started thread to send to.
+          // Fork-only: review workflows need a started thread to send to.
           review: offersGit && props.isGitRepo && !props.draftId && visible.review,
         };
         return (

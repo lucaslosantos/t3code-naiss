@@ -1,6 +1,6 @@
-// Fork-only: the Review row in the thread details card. Like project scripts, the main part runs the
-// default workflow and the chevron lists every workflow. A run asks the thread's agent to start the
-// reviewers in parallel with `delegate_task` and merge what they find.
+// Fork-only: the review row in the thread details card. Like project scripts, the main part runs
+// the project's default workflow and the chevron lists every workflow. A run asks the thread's
+// agent to start one reviewer per model with `delegate_task` and merge what they find.
 import { useAtomValue } from "@effect/atom-react";
 import { squashAtomCommandFailure } from "@t3tools/client-runtime/state/runtime";
 import { thrownErrorMessage } from "@t3tools/client-runtime/errors";
@@ -9,7 +9,7 @@ import {
   type ProviderInstanceId,
   type ScopedThreadRef,
 } from "@t3tools/contracts";
-import { T, useGT } from "gt-react";
+import { T, useGT, Var } from "gt-react";
 import { ChevronDownIcon, PlusIcon, ScanSearchIcon, SettingsIcon, StarIcon } from "lucide-react";
 import { useRef, useState } from "react";
 
@@ -47,9 +47,11 @@ import { ReviewWorkflowDialog, type ReviewWorkflowEditorRequest } from "./Review
 import {
   buildReviewPrompt,
   defaultReviewWorkflow,
+  STANDARD_REVIEW_PROMPT,
+  STANDARD_WORKFLOW_ID,
   type ReviewWorkflow,
 } from "./reviewWorkflows.logic";
-import { useReviewWorkflows } from "./reviewWorkflowsStore";
+import { useProjectReviewWorkflows } from "./reviewWorkflowsStore";
 
 function ReviewerIcons({
   workflow,
@@ -64,7 +66,7 @@ function ReviewerIcons({
         const entry = entryFor(reviewer.instanceId);
         return entry ? (
           <ProviderInstanceIcon
-            // oxlint-disable-next-line react/no-array-index-key -- the same reviewer can repeat
+            // oxlint-disable-next-line react/no-array-index-key -- the same model can repeat
             key={index}
             driverKind={entry.driverKind}
             displayName={entry.displayName}
@@ -81,44 +83,82 @@ function ReviewerIcons({
 }
 
 export function ThreadReviewRow({ thread }: { thread: ScopedThreadRef }) {
+  const shell = useQuietThreadShell(thread);
+  const canOperate = useEnvironmentScope(thread.environmentId, AuthOrchestrationOperateScope);
+  if (!shell || !canOperate) return null;
+  return <ProjectReviewRow thread={thread} shell={shell} />;
+}
+
+function ProjectReviewRow({
+  thread,
+  shell,
+}: {
+  thread: ScopedThreadRef;
+  shell: NonNullable<ReturnType<typeof useQuietThreadShell>>;
+}) {
   const gt = useGT();
   const anchorRef = useRef<HTMLDivElement | null>(null);
   const [menuOpen, setMenuOpen] = useState(false);
+  const [running, setRunning] = useState(false);
   const [editor, setEditor] = useState<ReviewWorkflowEditorRequest | null>(null);
-  const shell = useQuietThreadShell(thread);
-  const canOperate = useEnvironmentScope(thread.environmentId, AuthOrchestrationOperateScope);
   const settings = useEnvironmentSettings(thread.environmentId);
   const providers =
     useAtomValue(serverEnvironment.providersValueAtom(thread.environmentId)) ??
     EMPTY_SERVER_PROVIDERS;
-  const state = useReviewWorkflows();
   const startTurn = useOrchestrationCommand(threadEnvironment.startTurn, { reportFailure: false });
-
-  if (!shell || !canOperate) return null;
+  const setInteractionMode = useOrchestrationCommand(threadEnvironment.setInteractionMode, {
+    reportFailure: false,
+  });
+  const threadModel = {
+    instanceId: shell.modelSelection.instanceId,
+    model: shell.modelSelection.model,
+  };
+  const { state, save, remove } = useProjectReviewWorkflows(thread.environmentId, shell.projectId, {
+    id: STANDARD_WORKFLOW_ID,
+    name: gt("Standard", { $context: "name of the built-in review workflow" }),
+    prompt: STANDARD_REVIEW_PROMPT,
+    reviewers: [threadModel],
+  });
 
   const entries = providerInstanceEntriesFor(providers, settings, shell.projectId);
   const entryFor = (instanceId: ProviderInstanceId) =>
     entries.find((entry) => entry.instanceId === instanceId);
-  const primary = defaultReviewWorkflow(state);
+  const primary = defaultReviewWorkflow(state) ?? state.workflows[0];
+  if (!primary) return null;
 
-  const openNew = () =>
+  const openEditor = (workflow: ReviewWorkflow, isNew: boolean) => {
+    setMenuOpen(false);
     setEditor({
-      workflow: {
-        id: randomUUID(),
-        name: primary ? "" : gt("Full review", { $context: "example review workflow name" }),
-        reviewers: [
-          {
-            instanceId: shell.modelSelection.instanceId,
-            model: shell.modelSelection.model,
-            job: "bugs",
-          },
-        ],
-      },
-      isNew: true,
-      isDefault: primary === null,
+      workflow,
+      isNew,
+      isDefault: !isNew && workflow.id === primary.id,
+      isOnly: !isNew && state.workflows.length === 1,
+    });
+  };
+
+  const failed = (result: Parameters<typeof squashAtomCommandFailure>[0]) =>
+    toastManager.add({
+      type: "error",
+      title: gt("Could not request the review"),
+      description: thrownErrorMessage(squashAtomCommandFailure(result), m) ?? undefined,
     });
 
-  const run = async (workflow: ReviewWorkflow) => {
+  const request = async (workflow: ReviewWorkflow) => {
+    // A thread left in Plan mode would only plan the review instead of starting it.
+    if (shell.interactionMode !== DEFAULT_INTERACTION_MODE) {
+      const modeResult = await setInteractionMode({
+        environmentId: thread.environmentId,
+        input: {
+          threadId: thread.threadId,
+          interactionMode: DEFAULT_INTERACTION_MODE,
+          createdAt: new Date().toISOString(),
+        },
+      });
+      if (modeResult._tag === "Failure") {
+        failed(modeResult);
+        return;
+      }
+    }
     const result = await startTurn({
       environmentId: thread.environmentId,
       input: {
@@ -135,46 +175,37 @@ export function ThreadReviewRow({ thread }: { thread: ScopedThreadRef }) {
       },
     });
     if (result._tag === "Failure") {
-      toastManager.add({
-        type: "error",
-        title: gt("Could not start the review"),
-        description: thrownErrorMessage(squashAtomCommandFailure(result), m) ?? undefined,
-      });
+      failed(result);
       return;
     }
     toastManager.add({
       type: "success",
-      title: gt("{name} started", { name: workflow.name }),
-      description: gt(
-        "{count, plural, one {# reviewer reports} other {# reviewers report}} back in this thread.",
-        { count: workflow.reviewers.length },
-      ),
+      title: gt("{name} review requested", { name: workflow.name }),
+      description: gt("The agent starts the reviewers and merges what they find."),
     });
   };
 
-  const dialog = (
-    <ReviewWorkflowDialog
-      environmentId={thread.environmentId}
-      projectId={shell.projectId}
-      request={editor}
-      onClose={() => setEditor(null)}
-    />
-  );
-
-  if (!primary) {
-    return (
-      <>
-        <ThreadDetailsControl size="xs" variant="ghost" part="row" panel onClick={openNew}>
-          <ScanSearchIcon className={THREAD_DETAILS_PANEL_ICON_CLASS} aria-hidden />
-          <span className={THREAD_DETAILS_PANEL_LABEL_CLASS}>
-            <T>Set up a review</T>
-          </span>
-          <PlusIcon className={cn("ms-auto", THREAD_DETAILS_PANEL_CHEVRON_CLASS)} aria-hidden />
-        </ThreadDetailsControl>
-        {dialog}
-      </>
-    );
-  }
+  const run = async (workflow: ReviewWorkflow) => {
+    if (running) return;
+    const missing = workflow.reviewers.filter((reviewer) => {
+      const entry = entryFor(reviewer.instanceId);
+      return !entry || !entry.enabled || !entry.isAvailable;
+    });
+    if (missing.length > 0) {
+      toastManager.add({
+        type: "error",
+        title: gt("Some models are not available here"),
+        description: missing
+          .map((reviewer) => entryFor(reviewer.instanceId)?.displayName ?? reviewer.instanceId)
+          .join(", "),
+      });
+      openEditor(workflow, false);
+      return;
+    }
+    setRunning(true);
+    await request(workflow);
+    setRunning(false);
+  };
 
   return (
     <>
@@ -192,20 +223,26 @@ export function ThreadReviewRow({ thread }: { thread: ScopedThreadRef }) {
                 variant="ghost"
                 part="primary"
                 panel
-                aria-label={gt("Run {name}", { name: primary.name })}
+                aria-label={gt("Run {name} review", { name: primary.name })}
+                aria-disabled={running || undefined}
                 onClick={() => void run(primary)}
               />
             }
           >
             <ScanSearchIcon className={THREAD_DETAILS_PANEL_ICON_CLASS} aria-hidden />
             <span className={cn("min-w-0 truncate", THREAD_DETAILS_PANEL_LABEL_CLASS)}>
-              {primary.name}
+              <T>
+                Review ·{" "}
+                <span className="text-muted-foreground">
+                  <Var>{primary.name}</Var>
+                </span>
+              </T>
             </span>
             <span className="ms-auto flex">
               <ReviewerIcons workflow={primary} entryFor={entryFor} />
             </span>
           </TooltipTrigger>
-          <TooltipPopup side="top">{gt("Run {name}", { name: primary.name })}</TooltipPopup>
+          <TooltipPopup side="top">{gt("Run {name} review", { name: primary.name })}</TooltipPopup>
         </Tooltip>
         <span aria-hidden="true" className={THREAD_DETAILS_PANEL_SPLIT_SEPARATOR_CLASS} />
         <Menu open={menuOpen} onOpenChange={setMenuOpen}>
@@ -224,7 +261,12 @@ export function ThreadReviewRow({ thread }: { thread: ScopedThreadRef }) {
           </MenuTrigger>
           <MenuPopup align="end" anchor={anchorRef} className="w-(--anchor-width)">
             {state.workflows.map((workflow) => (
-              <MenuItem key={workflow.id} className="group" onClick={() => void run(workflow)}>
+              <MenuItem
+                key={workflow.id}
+                className="group"
+                disabled={running}
+                onClick={() => void run(workflow)}
+              >
                 {workflow.id === primary.id ? (
                   <StarIcon className="size-4 fill-current text-muted-foreground" />
                 ) : (
@@ -249,12 +291,7 @@ export function ThreadReviewRow({ thread }: { thread: ScopedThreadRef }) {
                       onClick={(event) => {
                         event.preventDefault();
                         event.stopPropagation();
-                        setMenuOpen(false);
-                        setEditor({
-                          workflow,
-                          isNew: false,
-                          isDefault: workflow.id === primary.id,
-                        });
+                        openEditor(workflow, false);
                       }}
                     >
                       <SettingsIcon className="size-3.5" />
@@ -264,7 +301,19 @@ export function ThreadReviewRow({ thread }: { thread: ScopedThreadRef }) {
               </MenuItem>
             ))}
             <MenuSeparator />
-            <MenuItem onClick={openNew}>
+            <MenuItem
+              onClick={() =>
+                openEditor(
+                  {
+                    id: randomUUID(),
+                    name: "",
+                    prompt: primary.prompt,
+                    reviewers: [threadModel],
+                  },
+                  true,
+                )
+              }
+            >
               <PlusIcon className="size-4" />
               <MenuItemLabel>
                 <T>New workflow</T>
@@ -273,7 +322,14 @@ export function ThreadReviewRow({ thread }: { thread: ScopedThreadRef }) {
           </MenuPopup>
         </Menu>
       </div>
-      {dialog}
+      <ReviewWorkflowDialog
+        environmentId={thread.environmentId}
+        projectId={shell.projectId}
+        request={editor}
+        onSave={save}
+        onDelete={remove}
+        onClose={() => setEditor(null)}
+      />
     </>
   );
 }
