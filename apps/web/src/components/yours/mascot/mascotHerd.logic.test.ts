@@ -12,6 +12,7 @@ function thread(
     approval?: boolean;
     subagent?: boolean;
     archived?: boolean;
+    settled?: boolean;
     sentAt?: string;
   } = {},
 ): Fixture {
@@ -26,6 +27,7 @@ function thread(
     },
     delegatedFrom: null,
     archivedAt: overrides.archived ? "2026-01-01T00:00:00.000Z" : null,
+    settledOverride: overrides.settled ? "settled" : null,
     runtime:
       overrides.status === undefined
         ? null
@@ -64,10 +66,11 @@ describe("buildMascotHerd", () => {
         thread("left-earlier", { status: "idle" }),
         thread("left", { status: "idle" }),
         thread("never-opened", { status: "idle" }),
+        thread("left-settled", { status: "idle", settled: true }),
         thread("work", { status: "running" }),
         thread("asks", { status: "running", approval: true }),
       ],
-      [key("current"), key("left"), key("work"), key("left-earlier")],
+      [key("current"), key("left-settled"), key("left"), key("work"), key("left-earlier")],
     );
     expect(herd.map((member) => [member.title, member.mood])).toEqual([
       ["asks", "waiting"],
