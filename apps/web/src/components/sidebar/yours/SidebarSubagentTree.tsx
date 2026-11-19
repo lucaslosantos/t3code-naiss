@@ -17,6 +17,7 @@ import {
   WorkingDuration,
   type SidebarTopStatus,
 } from "../SidebarThreadRow";
+import { useGT } from "gt-react";
 import { useHasSubagents, useSubagentTree } from "./subagentTree.state";
 import {
   countSubagents,
@@ -25,15 +26,18 @@ import {
   type SubagentNode,
 } from "./subagentTree.logic";
 
+type GT = ReturnType<typeof useGT>;
+
 const EXPANDED_KEY_PREFIX = "t3code:sidebar:subagents-expanded:";
 const StoredExpanded = Schema.NullOr(Schema.Boolean);
 
-const topStatusOf = (node: SubagentNode): SidebarTopStatus | null =>
+const topStatusOf = (node: SubagentNode, gt: GT): SidebarTopStatus | null =>
   resolveSidebarTopStatus({
     status: node.rowStatus,
     goalActive: node.goalActive,
     isWoke: false,
     isUnread: node.unread,
+    gt,
   });
 
 // Most urgent first, like the card's own status precedence.
@@ -50,11 +54,11 @@ const SUMMARY_ORDER: ReadonlyArray<SidebarTopStatus["icon"]> = [
 type SummaryPart = { status: SidebarTopStatus; count: number };
 
 /** "1 working · 1 waiting" for a closed tree, in the card's labels, glyphs and colors. */
-function summarizeSubagents(nodes: ReadonlyArray<SubagentNode>): SummaryPart[] {
+function summarizeSubagents(nodes: ReadonlyArray<SubagentNode>, gt: GT): SummaryPart[] {
   const byLabel = new Map<string, SummaryPart>();
   const visit = (list: ReadonlyArray<SubagentNode>) => {
     for (const node of list) {
-      const status = topStatusOf(node);
+      const status = topStatusOf(node, gt);
       if (status !== null) {
         const part = byLabel.get(status.label);
         if (part) part.count += 1;
@@ -181,7 +185,8 @@ function SubagentDisclosure(props: TreeProps & { nodes: ReadonlyArray<SubagentNo
   const routeKey = useRouteThreadKey();
   const expanded = resolveSubagentExpanded(stored, nodes, subagentTreeContains(nodes, routeKey));
   const total = countSubagents(nodes);
-  const summary = expanded ? null : summarizeSubagents(nodes);
+  const gt = useGT();
+  const summary = expanded ? null : summarizeSubagents(nodes, gt);
   return (
     <div
       data-thread-selection-safe
@@ -211,7 +216,9 @@ function SubagentDisclosure(props: TreeProps & { nodes: ReadonlyArray<SubagentNo
           )}
         />
         <span className="shrink-0 tabular-nums">
-          {total} {total === 1 ? "subagent" : "subagents"}
+          {gt("{count, plural, one {{count} subagent} other {{count} subagents}}", {
+            count: total,
+          })}
         </span>
         {summary !== null && summary.length > 0 ? (
           // Glyph and count per state, most urgent first; the words are for screen readers.
@@ -258,9 +265,10 @@ function SubagentList(props: {
   onActivate: (threadRef: ScopedThreadRef) => void;
   className?: string;
 }) {
+  const gt = useGT();
   return (
     // Preflight strips list styling, which drops list semantics in Safari; role restores them.
-    <ul id={props.id} role="list" aria-label="Subagents" className={props.className}>
+    <ul id={props.id} role="list" aria-label={gt("Subagents")} className={props.className}>
       {props.nodes.map((node) => (
         <SubagentItem
           key={node.key}
@@ -286,8 +294,9 @@ function SubagentItem(props: {
     hasChildren &&
     resolveSubagentExpanded(stored, node.children, subagentTreeContains(node.children, routeKey));
   const isRoute = node.key === routeKey;
-  const title = node.title.trim() || "Subagent";
-  const topStatus = topStatusOf(node);
+  const gt = useGT();
+  const title = node.title.trim() || gt("Subagent");
+  const topStatus = topStatusOf(node, gt);
   return (
     <li
       className={cn(
@@ -347,7 +356,9 @@ function SubagentItem(props: {
             type="button"
             aria-expanded={expanded}
             aria-controls={expanded ? listId : undefined}
-            aria-label={expanded ? `Collapse ${title}` : `Expand ${title}`}
+            aria-label={
+              expanded ? gt("Collapse {title}", { title }) : gt("Expand {title}", { title })
+            }
             onClick={(event) => {
               event.stopPropagation();
               setStored(!expanded);

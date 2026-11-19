@@ -1,3 +1,4 @@
+import { msg } from "gt-react";
 import type { TerminalPlacement } from "@t3tools/contracts/settings";
 
 import type { RightPanelSurface } from "../../rightPanelStore";
@@ -9,9 +10,9 @@ export const TERMINAL_PLACEMENTS = [
 ] as const satisfies ReadonlyArray<TerminalPlacement>;
 
 export const TERMINAL_PLACEMENT_LABELS: Record<TerminalPlacement, string> = {
-  right: "Right panel",
-  bottom: "Bottom",
-  sidebar: "Sidebar",
+  right: msg("Right panel", { $context: "terminal position" }),
+  bottom: msg("Bottom", { $context: "terminal position" }),
+  sidebar: msg("Sidebar", { $context: "terminal position" }),
 };
 
 export function isTerminalPlacement(value: unknown): value is TerminalPlacement {

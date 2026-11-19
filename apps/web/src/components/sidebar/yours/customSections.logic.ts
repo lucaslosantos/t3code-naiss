@@ -1,3 +1,6 @@
+import { msg } from "gt-react";
+
+import { m, type MessageResolver } from "~/i18n/messages";
 import {
   type ContextMenuItem,
   SIDEBAR_SECTION_COLORS,
@@ -262,13 +265,15 @@ export function withSectionMenuItems<T extends string, Extra extends string = ne
     readonly sections: ReadonlyArray<Pick<SidebarCustomSection, "id" | "name">>;
     readonly currentSectionId: string | null;
     readonly beforeId: T;
+    readonly resolve?: MessageResolver;
   },
   ...extraItems: ContextMenuItem<Extra>[]
 ): ContextMenuItem<T | SectionMenuId | Extra>[] {
+  const resolve = input.resolve ?? m;
   const added: ContextMenuItem<SectionMenuId>[] = [
     {
       id: "section:menu",
-      label: "Move to section",
+      label: resolve(msg("Move to section")),
       icon: "folder-plus",
       children: [
         ...input.sections.map((section) => ({
@@ -276,12 +281,16 @@ export function withSectionMenuItems<T extends string, Extra extends string = ne
           label: section.name,
           checked: section.id === input.currentSectionId,
         })),
-        { id: "section:new", label: "New section…", separatorBefore: input.sections.length > 0 },
+        {
+          id: "section:new",
+          label: resolve(msg("New section…")),
+          separatorBefore: input.sections.length > 0,
+        },
       ],
     },
     ...(input.currentSectionId === null
       ? []
-      : [{ id: "section:remove" as const, label: "Remove from section" }]),
+      : [{ id: "section:remove" as const, label: resolve(msg("Remove from section")) }]),
   ];
   const index = items.findIndex((item) => item.id === input.beforeId);
   const at = index === -1 ? items.length : index;

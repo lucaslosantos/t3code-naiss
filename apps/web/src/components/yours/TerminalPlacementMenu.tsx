@@ -1,5 +1,6 @@
 import type { ScopedThreadRef } from "@t3tools/contracts";
 import type { TerminalPlacement } from "@t3tools/contracts/settings";
+import { T, useGT, useMessages } from "gt-react";
 import { PanelBottomIcon, PanelLeftIcon, PanelRightIcon, type LucideIcon } from "lucide-react";
 
 import { Button } from "../ui/button";
@@ -31,8 +32,6 @@ const TRIGGER_CLASS_NAMES = {
   list: "inline-flex h-full items-center border-l border-border/70 px-1 text-foreground/90 transition-colors hover:bg-accent/70 data-popup-open:bg-accent/70",
 } as const;
 
-const LABEL = "Move terminal";
-
 // Loaded on use: the drawer renders this menu, and its tests stub the settings module.
 function moveTerminal(
   next: TerminalPlacement,
@@ -52,6 +51,9 @@ export function TerminalPlacementMenu(props: {
   variant: "toolbar" | "list" | "header";
 }) {
   const CurrentIcon = TERMINAL_PLACEMENT_ICONS[props.current];
+  const gt = useGT();
+  const m = useMessages();
+  const label = gt("Move terminal");
   return (
     <Menu>
       <Tooltip>
@@ -60,11 +62,11 @@ export function TerminalPlacementMenu(props: {
             <MenuTrigger
               render={
                 props.variant === "header" ? (
-                  <Button aria-label={LABEL} size="icon-xs" variant="ghost-muted" />
+                  <Button aria-label={label} size="icon-xs" variant="ghost-muted" />
                 ) : (
                   <button
                     type="button"
-                    aria-label={LABEL}
+                    aria-label={label}
                     className={TRIGGER_CLASS_NAMES[props.variant]}
                   />
                 )
@@ -74,11 +76,13 @@ export function TerminalPlacementMenu(props: {
         >
           <CurrentIcon className={props.variant === "header" ? "size-3.5" : "size-3.25"} />
         </TooltipTrigger>
-        <TooltipPopup side="bottom">{LABEL}</TooltipPopup>
+        <TooltipPopup side="bottom">{label}</TooltipPopup>
       </Tooltip>
       <MenuPopup align="end" side="bottom" sideOffset={6}>
         <MenuGroup>
-          <MenuGroupLabel>Show terminal in</MenuGroupLabel>
+          <MenuGroupLabel>
+            <T>Show terminal in</T>
+          </MenuGroupLabel>
           <MenuRadioGroup
             value={props.current}
             onValueChange={(value) => {
@@ -93,7 +97,7 @@ export function TerminalPlacementMenu(props: {
                 <MenuRadioItem key={placement} value={placement} closeOnClick>
                   <span className="flex items-center gap-2">
                     <Icon className="text-muted-foreground" />
-                    {TERMINAL_PLACEMENT_LABELS[placement]}
+                    {m(TERMINAL_PLACEMENT_LABELS[placement])}
                     <MenuRadioItemIndicator className="ms-auto" />
                   </span>
                 </MenuRadioItem>

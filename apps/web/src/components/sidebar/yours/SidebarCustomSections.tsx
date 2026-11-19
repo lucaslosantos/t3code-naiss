@@ -1,3 +1,4 @@
+import { T, useGT, useMessages } from "gt-react";
 import { useDndContext, useDroppable } from "@dnd-kit/core";
 import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
@@ -227,6 +228,8 @@ function CustomSection<T extends SectionThread>(props: {
   const rowId = `section:${section.id}`;
   const color = normalizeSectionColor(section.color);
   const styles = SECTION_COLOR_STYLES[color];
+  const gt = useGT();
+  const m = useMessages();
 
   const openMenu = (position: { x: number; y: number }) => {
     const api = readLocalApi();
@@ -235,24 +238,24 @@ function CustomSection<T extends SectionThread>(props: {
       const clicked = await settlePromise(() =>
         api.contextMenu.show(
           [
-            { id: "rename", label: "Rename section", icon: "pencil" },
-            { id: "icon", label: "Icon…" },
+            { id: "rename", label: gt("Rename section"), icon: "pencil" },
+            { id: "icon", label: gt("Icon…", { $context: "menu item: change section icon" }) },
             {
               id: "color",
-              label: "Color",
+              label: gt("Color", { $context: "section color" }),
               children: SIDEBAR_SECTION_COLORS.map((option) => ({
                 id: `color:${option}`,
-                label: SECTION_COLOR_STYLES[option].label,
+                label: m(SECTION_COLOR_STYLES[option].label),
                 checked: option === color,
               })),
             },
-            { id: "move-up", label: "Move up", disabled: props.isFirst, separatorBefore: true },
-            { id: "move-down", label: "Move down", disabled: props.isLast },
-            { id: "new", label: "New section", icon: "folder-plus", separatorBefore: true },
+            { id: "move-up", label: gt("Move up"), disabled: props.isFirst, separatorBefore: true },
+            { id: "move-down", label: gt("Move down"), disabled: props.isLast },
+            { id: "new", label: gt("New section"), icon: "folder-plus", separatorBefore: true },
             {
               id: "delete",
-              label: "Delete section",
-              ...(count > 0 ? { detail: "Threads go back to Active" } : {}),
+              label: gt("Delete section"),
+              ...(count > 0 ? { detail: gt("Threads go back to Active") } : {}),
               icon: "trash",
               destructive: true,
               separatorBefore: true,
@@ -376,21 +379,23 @@ function CustomSection<T extends SectionThread>(props: {
                     data-sidebar-action-for={rowId}
                     size="icon-xs"
                     variant="ghost-muted"
-                    aria-label="New section"
+                    aria-label={gt("New section")}
                     onClick={() => setRenamingId(sectionDefinitions.create())}
                   />
                 }
               >
                 <PlusIcon aria-hidden />
               </TooltipTrigger>
-              <TooltipPopup>New section</TooltipPopup>
+              <TooltipPopup>
+                <T>New section</T>
+              </TooltipPopup>
             </Tooltip>
             <Button
               ref={menuButtonRef}
               data-sidebar-action-for={rowId}
               size="icon-xs"
               variant="ghost-muted"
-              aria-label={`${section.name} options`}
+              aria-label={gt("{name} options", { name: section.name })}
               onClick={() => {
                 const rect = menuButtonRef.current?.getBoundingClientRect();
                 if (rect) openMenu({ x: rect.left, y: rect.bottom + 4 });
@@ -426,7 +431,7 @@ function CustomSection<T extends SectionThread>(props: {
                 : "border-transparent text-sidebar-muted-foreground/60",
           )}
         >
-          {props.dragging ? "Drop here" : "No threads"}
+          {props.dragging ? <T>Drop here</T> : <T>No threads</T>}
         </div>
       ) : null}
     </li>
@@ -445,6 +450,7 @@ function SectionNameInput(props: {
     doneRef.current = true;
     props.onDone(name === null ? null : name.trim() || null);
   };
+  const gt = useGT();
   const handleKeyDown = (event: ReactKeyboardEvent<HTMLInputElement>) => {
     event.stopPropagation();
     if (event.nativeEvent.isComposing) return;
@@ -463,7 +469,7 @@ function SectionNameInput(props: {
         autoFocus
         defaultValue={props.name}
         dir="auto"
-        aria-label="Section name"
+        aria-label={gt("Section name")}
         maxLength={60}
         onFocus={(event) => event.currentTarget.select()}
         onKeyDown={handleKeyDown}
