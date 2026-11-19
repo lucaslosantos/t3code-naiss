@@ -2,6 +2,8 @@
 
 Newest first. Each entry: date, what changed (plain words), merge commit.
 
+- 2026-11-19: The PR number button in the pull request bar no longer has a white fill; it takes the bar's color like the stack badge next to it. (merge 8d435e4484)
+
 - 2026-11-19: The Review row now works like run scripts: save several review workflows, each reviewer with its own model and job (Bugs, Security, Standards, Simplify); click to run the default one, or pick another from the menu. (merge 68290529e9)
 
 - 2026-11-19: A Review row in the thread details card starts several reviewer agents at once: pick a flow (Standards, Bugs, Security, Simplify) and any mix of providers and models, and the thread's agent merges what they find. (merge 5d9e2e793a)
