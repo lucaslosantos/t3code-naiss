@@ -146,7 +146,7 @@ export function WorktreePrBar({ thread, projectId, pr, onPrompt }: BarProps) {
   const link = pr && sourceControlClients.parseChangeRequestUrl(pr.url)?.link;
   if (!pr && !canWrite) return null;
   return (
-    <div className="flex min-h-9 shrink-0 items-center justify-end gap-2 border-b border-border px-3 py-1">
+    <div className="flex min-h-12 shrink-0 items-center justify-end gap-3 border-b border-border px-4 py-2.5">
       {pr ? (
         <>
           <Button
