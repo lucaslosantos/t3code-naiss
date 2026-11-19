@@ -43,16 +43,18 @@
 }
 
 /* Fork-only: buttons share the row tint instead of a white fill. */
-[data-worktree-pr-tone]:not([data-worktree-pr-tone="neutral"]) [data-slot="button"] {
+[data-worktree-pr-tone]:not([data-worktree-pr-tone="neutral"])
+  :is([data-slot="button"], [data-slot="menu-trigger"]) {
   background-color: transparent;
   box-shadow: none;
 }
 
-[data-worktree-pr-tone]:not([data-worktree-pr-tone="neutral"]) [data-slot="button"]::before {
+[data-worktree-pr-tone]:not([data-worktree-pr-tone="neutral"])
+  :is([data-slot="button"], [data-slot="menu-trigger"])::before {
   box-shadow: none;
 }
 
 [data-worktree-pr-tone]:not([data-worktree-pr-tone="neutral"])
-  [data-slot="button"]:is(:hover, [data-pressed]) {
+  :is([data-slot="button"], [data-slot="menu-trigger"]):is(:hover, [data-pressed]) {
   background-color: var(--accent);
 }
