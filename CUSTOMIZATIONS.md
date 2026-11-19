@@ -2,6 +2,8 @@
 
 Newest first. Each entry: date, what changed (plain words), merge commit.
 
+- 2026-11-19: A merged pull request bar now has a Continue button next to Merged: it keeps the same worktree and chat but starts a fresh branch from the latest main, so you can keep going without a new workspace. (merge f90ad426ab)
+
 - 2026-11-19: Review workflows are now per project and are just a prompt plus the models that run it in parallel. Every project starts with a Standard workflow you can edit; add more (e.g. one that uses the repo's own review skill). (merge 505e01c2b5)
 
 - 2026-11-19: The PR number button in the pull request bar no longer has a white fill; it takes the bar's color like the stack badge next to it, dropdown arrow included. (merge 8d435e4484, 799f343420)
