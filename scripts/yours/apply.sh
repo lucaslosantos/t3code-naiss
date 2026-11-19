@@ -27,6 +27,9 @@ for legacy in "T3 Code (luko)" "$LEGACY_APP_NAME"; do
   current="/Applications/$legacy.app"
   [[ "$(plist_value "$current" CFBundleIdentifier)" == "$YOURS_APP_ID" ]] || die "Unexpected legacy app identity."
 done
+if [[ -d "$YOURS_PREVIOUS_APP" ]] && bundle_has_processes "$YOURS_PREVIOUS_APP"; then
+  quit_app_gracefully "$YOURS_PREVIOUS_APP" "$YOURS_PREVIOUS_APP"
+fi
 if [[ -d "$current" ]]; then
   quit_app_gracefully "$(plist_value "$current" CFBundleName)" "$current"
 fi
@@ -38,6 +41,7 @@ if [[ -d "$current" ]]; then
   "$registrar" -u "$YOURS_PREVIOUS_APP" >/dev/null 2>&1 || true
   rm -rf "$YOURS_PREVIOUS_APP"
   mv "$current" "$YOURS_PREVIOUS_APP"
+  "$registrar" -u "$YOURS_PREVIOUS_APP" >/dev/null 2>&1 || true
   log "Kept the previous build at $YOURS_PREVIOUS_APP."
 fi
 if ! mv "$YOURS_STAGED_APP" "$YOURS_INSTALLED_APP"; then

@@ -219,6 +219,7 @@ function run(
 }
 
 export interface FakeThread {
+  worktreePath?: string;
   /** Makes this a side chat of that thread. */
   readonly sideChatOf?: ThreadId;
   /** Makes this an older settled thread the shell leaves out; only its family read returns it. */
@@ -316,7 +317,7 @@ function shellOf(thread: FakeThread): OrchestrationV2ThreadShell {
     runtimeMode: "full-access",
     interactionMode: "default",
     branch: "main",
-    worktreePath: null,
+    worktreePath: thread.worktreePath ?? null,
     activeProviderThreadId: thread.providerThreads?.[0]?.id ?? null,
     lineage: {
       rootThreadId: thread.sideChatOf ?? thread.subagentOf ?? thread.id,

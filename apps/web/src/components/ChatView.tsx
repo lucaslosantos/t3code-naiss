@@ -3339,6 +3339,30 @@ export default function ChatView(props: ChatViewProps) {
       {panelToggleControls}
     </WorkspaceTitlebarControls>
   );
+  const worktreeActions =
+    !embedded &&
+    activeThreadRef &&
+    !queuedRunEdit.editingRunId &&
+    canOperateThread &&
+    supportsPullRequests &&
+    activeProject &&
+    (gitStatusQuery.data
+      ? gitStatusQuery.data.hasPrimaryRemote &&
+        gitStatusQuery.data.refName &&
+        !gitStatusQuery.data.isDefaultRef
+      : activeThread.worktreePath && activeThread.branch) ? (
+      <WorktreePrBar
+        thread={activeThreadRef}
+        projectId={activeProject.id}
+        pr={gitStatusQuery.data?.pr ?? null}
+        onPrompt={(prompt) => {
+          writeHandoffToComposer(activeThreadRef, { prompt });
+          if (rightPanelOpen && shouldUsePlanSidebarSheet) closePreviewPanelStable();
+          else if (rightPanelMaximized) toggleRightPanelMaximizedStable();
+          scheduleComposerFocusStable();
+        }}
+      />
+    ) : null;
   const workspaceFileDropHandlers = makeWorkspaceFileDropHandlers({
     setDragActive: setIsWorkspaceFileDragActive,
     addFiles: addDroppedFilesToComposer,
@@ -3412,6 +3436,7 @@ export default function ChatView(props: ChatViewProps) {
           </header>
         )}
 
+        {!rightPanelOpen && worktreeActions}
         <div className="relative flex min-h-0 min-w-0 flex-1">
           <ThreadFindCanvas
             findOptions={{
@@ -4027,29 +4052,7 @@ export default function ChatView(props: ChatViewProps) {
 
       {rightPanelPresent && activeThreadRef && !embedded ? (
         <ChatRightPanel
-          worktreeActions={
-            rightPanelOpen &&
-            !queuedRunEdit.editingRunId &&
-            canOperateThread &&
-            activeThread?.worktreePath &&
-            supportsPullRequests &&
-            activeProject &&
-            gitStatusQuery.data?.hasPrimaryRemote &&
-            gitStatusQuery.data.refName &&
-            !gitStatusQuery.data.isDefaultRef ? (
-              <WorktreePrBar
-                thread={activeThreadRef}
-                projectId={activeProject.id}
-                pr={gitStatusQuery.data.pr}
-                onPrompt={(prompt) => {
-                  writeHandoffToComposer(activeThreadRef, { prompt });
-                  if (shouldUsePlanSidebarSheet) closePreviewPanelStable();
-                  else if (rightPanelMaximized) toggleRightPanelMaximizedStable();
-                  scheduleComposerFocusStable();
-                }}
-              />
-            ) : null
-          }
+          worktreeActions={rightPanelOpen ? worktreeActions : null}
           sheet={shouldUsePlanSidebarSheet}
           workspaceLayoutElement={workspaceLayoutElement}
           widthStorageKey={`t3code:preview-panel-width:${activeThreadKey}`}
