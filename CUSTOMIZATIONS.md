@@ -2,6 +2,8 @@
 
 Newest first. Each entry: date, what changed (plain words), merge commit.
 
+- 2026-11-19: Review workflows are now per project and are just a prompt plus the models that run it in parallel. Every project starts with a Standard workflow you can edit; add more (e.g. one that uses the repo's own review skill). (merge 505e01c2b5)
+
 - 2026-11-19: The PR number button in the pull request bar no longer has a white fill; it takes the bar's color like the stack badge next to it. (merge 8d435e4484)
 
 - 2026-11-19: The Review row now works like run scripts: save several review workflows, each reviewer with its own model and job (Bugs, Security, Standards, Simplify); click to run the default one, or pick another from the menu. (merge 68290529e9)
