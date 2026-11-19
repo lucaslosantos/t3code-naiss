@@ -1390,6 +1390,16 @@ export function RightPanelTabs(props: RightPanelTabsProps) {
         )
       }
     >
+      {props.worktreeActions && (
+        <div
+          className={cn(
+            "shrink-0",
+            props.mode === "inline" && "pr-32 wco:mr-(--workspace-native-controls-inset)",
+          )}
+        >
+          {props.worktreeActions}
+        </div>
+      )}
       <div
         className={cn(
           "flex h-[var(--workspace-topbar-height)] min-h-[var(--workspace-topbar-height)] shrink-0 items-center gap-1 pl-2",
@@ -1583,7 +1593,6 @@ export function RightPanelTabs(props: RightPanelTabsProps) {
           />
         ) : null}
       </div>
-      {props.worktreeActions}
       <div
         className={cn("flex min-h-0 flex-1 flex-col", props.bottomDockFills && "hidden")}
         data-right-panel-surface-content
