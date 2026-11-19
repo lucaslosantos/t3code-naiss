@@ -58,7 +58,9 @@ function BranchPrRow({ pr, children }: { pr: NonNullable<BarProps["pr"]>; childr
   return (
     <PrRow tone={tone}>
       {children}
-      <span data-worktree-pr-state>{label}</span>
+      <span className="ml-auto" data-worktree-pr-state>
+        {label}
+      </span>
     </PrRow>
   );
 }
@@ -159,13 +161,12 @@ function LinkedActions({
           />
         </div>
       )}
-      <span data-worktree-pr-state>{state.label}</span>
-      {action &&
-        !detail.isInMergeQueue &&
-        (action !== "merge" || ready) &&
-        canWriteSourceControl &&
-        detailQuery.isSuccess && (
-          <div className="ml-auto">
+      <div className="ml-auto flex flex-wrap items-center justify-end gap-2">
+        {action &&
+          !detail.isInMergeQueue &&
+          (action !== "merge" || ready) &&
+          canWriteSourceControl &&
+          detailQuery.isSuccess && (
             <Button
               size="compact"
               variant="outline"
@@ -173,8 +174,9 @@ function LinkedActions({
             >
               {labels[action]}
             </Button>
-          </div>
-        )}
+          )}
+        <span data-worktree-pr-state>{state.label}</span>
+      </div>
     </PrRow>
   );
 }
