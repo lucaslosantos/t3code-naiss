@@ -58,3 +58,9 @@
   :is([data-slot="button"], [data-slot="menu-trigger"]):is(:hover, [data-pressed]) {
   background-color: var(--accent);
 }
+
+/* Fork-only: Continue reads as the next step, like Conductor's dashed button. */
+[data-worktree-pr-continue] {
+  border-style: dashed;
+  border-color: var(--contrast-input);
+}

@@ -25,6 +25,7 @@ import {
   resolveThreadPanelPullRequestAction,
 } from "../pullRequest/pullRequestDetail.logic";
 import { usePullRequestDetail } from "../pullRequest/usePullRequestDetail";
+import { ContinueWorktreeButton } from "./ContinueWorktreeButton";
 
 type BarProps = {
   thread: ScopedThreadRef;
@@ -46,7 +47,15 @@ function PrRow({ tone, children }: { tone: RowTone; children: ReactNode }) {
   );
 }
 
-function BranchPrRow({ pr, children }: { pr: NonNullable<BarProps["pr"]>; children: ReactNode }) {
+function BranchPrRow({
+  thread,
+  pr,
+  children,
+}: {
+  thread: ScopedThreadRef;
+  pr: NonNullable<BarProps["pr"]>;
+  children: ReactNode;
+}) {
   const gt = useGT();
   const tone = pr.state === "open" && pr.isDraft ? "draft" : pr.state;
   const label = {
@@ -58,9 +67,10 @@ function BranchPrRow({ pr, children }: { pr: NonNullable<BarProps["pr"]>; childr
   return (
     <PrRow tone={tone}>
       {children}
-      <span className="ml-auto" data-worktree-pr-state>
-        {label}
-      </span>
+      <div className="ml-auto flex items-center gap-2">
+        {tone === "merged" && <ContinueWorktreeButton thread={thread} />}
+        <span data-worktree-pr-state>{label}</span>
+      </div>
     </PrRow>
   );
 }
@@ -86,7 +96,12 @@ function LinkedActions({
     thread.environmentId,
     detail?.capabilities.stacks ? reference : null,
   );
-  if (!detail) return <BranchPrRow pr={pr}>{children}</BranchPrRow>;
+  if (!detail)
+    return (
+      <BranchPrRow thread={thread} pr={pr}>
+        {children}
+      </BranchPrRow>
+    );
   const stack = stackQuery.data;
   const index = stack?.layers.findIndex((layer) => layer.number === reference.number) ?? -1;
   const membership =
@@ -175,6 +190,7 @@ function LinkedActions({
               {labels[action]}
             </Button>
           )}
+        {detail.state === "merged" && <ContinueWorktreeButton thread={thread} />}
         <span data-worktree-pr-state>{state.label}</span>
       </div>
     </PrRow>
@@ -227,7 +243,12 @@ export function WorktreePrBar({ thread, projectId, pr, onPrompt }: BarProps) {
         </Menu>
       </Group>
     );
-    if (!link) return <BranchPrRow pr={pr}>{number}</BranchPrRow>;
+    if (!link)
+      return (
+        <BranchPrRow thread={thread} pr={pr}>
+          {number}
+        </BranchPrRow>
+      );
     return (
       <LinkedActions
         thread={thread}

@@ -10,6 +10,8 @@ import {
   type VcsSwitchRefResult,
   type VcsCreateRefInput,
   type VcsCreateRefResult,
+  type VcsContinueFromDefaultInput,
+  type VcsContinueFromDefaultResult,
   type VcsCreateWorktreeInput,
   type VcsCreateWorktreeResult,
   type VcsListRefsInput,
@@ -33,6 +35,7 @@ import * as GitManager from "./GitManager.ts";
 import * as GitVcsDriver from "../vcs/GitVcsDriver.ts";
 import * as VcsDriverRegistry from "../vcs/VcsDriverRegistry.ts";
 import { withWorkspaceLease } from "../workspace/workspaceLease.ts";
+import { continueFromDefault } from "./yours/continueFromDefault.ts";
 
 export class GitWorkflowService extends Context.Service<
   GitWorkflowService,
@@ -142,6 +145,10 @@ export class GitWorkflowService extends Context.Service<
     readonly switchRef: (
       input: VcsSwitchRefInput,
     ) => Effect.Effect<VcsSwitchRefResult, GitCommandError>;
+    /** Fork-only */
+    readonly continueFromDefault: (
+      input: VcsContinueFromDefaultInput,
+    ) => Effect.Effect<VcsContinueFromDefaultResult, GitCommandError>;
     readonly renameBranch: (input: {
       readonly exactName?: boolean;
       readonly cwd: string;
@@ -535,6 +542,15 @@ export const make = Effect.gen(function* () {
         ),
       );
     }),
+    continueFromDefault: Effect.fn("GitWorkflowService.continueFromDefault.lease")(
+      function* (input) {
+        const handle = yield* ensureGitCommand("GitWorkflowService.continueFromDefault", input.cwd);
+        return yield* withCheckoutLease(
+          handle.repository.rootPath,
+          continueFromDefault(git, input),
+        );
+      },
+    ),
     switchRef: Effect.fn("GitWorkflowService.switchRef")(function (input) {
       return ensureGitCommand("GitWorkflowService.switchRef", input.cwd).pipe(
         Effect.flatMap((handle) =>

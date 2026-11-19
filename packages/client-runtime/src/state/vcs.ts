@@ -385,6 +385,14 @@ export function createVcsEnvironmentAtoms<R, E>(
       concurrency: vcsCommandConcurrency,
       onSettled: invalidateRefs,
     }),
+    // Fork-only
+    continueFromDefault: createEnvironmentRpcCommand(runtime, {
+      label: "environment-data:vcs:continue-from-default",
+      tag: WS_METHODS.vcsContinueFromDefault,
+      scheduler: vcsCommandScheduler,
+      concurrency: vcsCommandConcurrency,
+      onSettled: invalidateRefs,
+    }),
     init: createEnvironmentRpcCommand(runtime, {
       label: "environment-data:vcs:init",
       tag: WS_METHODS.vcsInit,
