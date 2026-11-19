@@ -6,13 +6,13 @@ import type { ScopedThreadRef } from "@t3tools/contracts";
 import { resolveSidebarRowStatus } from "../../Sidebar.logic";
 
 export type MascotMood = "idle" | "working" | "waiting" | "failed";
-export type BusyMood = Exclude<MascotMood, "idle">;
+type BusyMood = Exclude<MascotMood, "idle">;
 
 export interface HerdMember {
   readonly key: string;
   readonly ref: ScopedThreadRef;
   readonly title: string;
-  readonly mood: BusyMood;
+  readonly mood: MascotMood;
 }
 
 type HerdThread = Pick<
@@ -56,10 +56,21 @@ function resolveHerdMood(thread: HerdThread): BusyMood | null {
   }
 }
 
-const moodOrder: Record<BusyMood, number> = { waiting: 0, failed: 1, working: 2 };
+const moodOrder: Record<MascotMood, number> = { waiting: 0, failed: 1, working: 2, idle: 2 };
 
-/** Top-level threads that need a glance, most urgent first; subagents and side chats stay with their parent. */
-export function buildMascotHerd(threads: ReadonlyArray<HerdThread>): ReadonlyArray<HerdMember> {
+/**
+ * Top-level threads that are busy or were just visited, most urgent first, then most recently
+ * visited, so the thread you leave takes a place in the stack. Subagents and side chats stay with
+ * their parent. `visits` holds thread keys, most recent first.
+ */
+export function buildMascotHerd(
+  threads: ReadonlyArray<HerdThread>,
+  visits: ReadonlyArray<string> = [],
+): ReadonlyArray<HerdMember> {
+  const visitRank = (key: string) => {
+    const index = visits.indexOf(key);
+    return index === -1 ? visits.length : index;
+  };
   return threads
     .flatMap((thread) => {
       if (
@@ -69,12 +80,14 @@ export function buildMascotHerd(threads: ReadonlyArray<HerdThread>): ReadonlyArr
         thread.delegatedFrom != null
       )
         return [];
-      const mood = resolveHerdMood(thread);
-      if (mood === null) return [];
       const ref = scopeThreadRef(thread.environmentId, thread.id);
+      const key = scopedThreadKey(ref);
+      const mood: MascotMood | null =
+        resolveHerdMood(thread) ?? (visits.includes(key) ? "idle" : null);
+      if (mood === null) return [];
       return [
         {
-          key: scopedThreadKey(ref),
+          key,
           ref,
           title: thread.title,
           mood,
@@ -82,7 +95,12 @@ export function buildMascotHerd(threads: ReadonlyArray<HerdThread>): ReadonlyArr
         },
       ];
     })
-    .toSorted((a, b) => moodOrder[a.mood] - moodOrder[b.mood] || b.at.localeCompare(a.at))
+    .toSorted(
+      (a, b) =>
+        moodOrder[a.mood] - moodOrder[b.mood] ||
+        visitRank(a.key) - visitRank(b.key) ||
+        b.at.localeCompare(a.at),
+    )
     .map(({ at: _at, ...member }) => member);
 }
 

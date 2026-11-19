@@ -10,7 +10,7 @@ import { useLocalStorage } from "../../../hooks/useLocalStorage";
 import { buildThreadRouteParams } from "../../../threadRoutes";
 import { Tooltip, TooltipPopup, TooltipTrigger } from "../../ui/tooltip";
 import type { HerdMember, MascotMood } from "./mascotHerd.logic";
-import { useMascotHerd } from "./mascotHerd.state";
+import { recordMascotVisit, useMascotHerd } from "./mascotHerd.state";
 
 const companionUrl = Object.values(
   import.meta.glob<string>("./companion.riv", {
@@ -29,7 +29,12 @@ const moods = {
   waiting: ["spark", "perk"],
   failed: ["fire", "droop"],
 } as const;
-const moodLabels = { working: "Working", waiting: "Needs you", failed: "Failed" } as const;
+const moodLabels = {
+  idle: "Recent",
+  working: "Working",
+  waiting: "Needs you",
+  failed: "Failed",
+} as const;
 const positionSchema = Schema.Struct({ x: Schema.Number, y: Schema.Number });
 const size = 76;
 const mini = 56;
@@ -144,6 +149,8 @@ export default function ThreadMascot({ mood, threadKey }: { mood: MascotMood; th
   const stage = useRef<HTMLDivElement>(null);
   const playReaction = useCompanion(canvas, mood, false);
   const navigate = useNavigate();
+  // oxlint-disable-next-line t3code/no-unreasoned-state-sync -- the visit trail is a module store shared across thread views
+  useEffect(() => recordMascotVisit(threadKey), [threadKey]);
   const herd = useMascotHerd().filter((member) => member.key !== threadKey);
   const [position, savePosition] = useLocalStorage(
     "t3code:luko:mascot-position",
@@ -167,7 +174,7 @@ export default function ThreadMascot({ mood, threadKey }: { mood: MascotMood; th
   const closeTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
   const open = moving === null && (hovered || calling) && shown.length > 0;
   const urgent = herd
-    .filter((member) => member.mood !== "working")
+    .filter((member) => member.mood === "waiting" || member.mood === "failed")
     .map((member) => member.key)
     .join(" ");
   const seenUrgent = useRef(urgent);
