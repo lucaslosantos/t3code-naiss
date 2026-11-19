@@ -1,18 +1,22 @@
-// Fork-only: the Review row in the thread details card. It asks the thread's agent to start
-// parallel reviewers with `delegate_task` and merge what they find.
+// Fork-only: the Review row in the thread details card. Like project scripts, the main part runs the
+// default workflow and the chevron lists every workflow. A run asks the thread's agent to start the
+// reviewers in parallel with `delegate_task` and merge what they find.
 import { useAtomValue } from "@effect/atom-react";
 import { squashAtomCommandFailure } from "@t3tools/client-runtime/state/runtime";
 import { thrownErrorMessage } from "@t3tools/client-runtime/errors";
-import { AuthOrchestrationOperateScope, type ScopedThreadRef } from "@t3tools/contracts";
-import { msg, T, useGT } from "gt-react";
-import { ChevronDownIcon, PlusIcon, ScanSearchIcon, XIcon } from "lucide-react";
-import { useState } from "react";
+import {
+  AuthOrchestrationOperateScope,
+  type ProviderInstanceId,
+  type ScopedThreadRef,
+} from "@t3tools/contracts";
+import { T, useGT } from "gt-react";
+import { ChevronDownIcon, PlusIcon, ScanSearchIcon, SettingsIcon, StarIcon } from "lucide-react";
+import { useRef, useState } from "react";
 
 import { useEnvironmentSettings } from "~/hooks/useSettings";
 import { m } from "~/i18n/messages";
-import { newMessageId } from "~/lib/utils";
-import { getCustomModelOptionsByInstance } from "~/modelSelection";
-import { providerInstanceEntriesFor } from "~/providerInstances";
+import { cn, newMessageId, randomUUID } from "~/lib/utils";
+import { providerInstanceEntriesFor, type ProviderInstanceEntry } from "~/providerInstances";
 import { useQuietThreadShell } from "~/state/entities";
 import { EMPTY_SERVER_PROVIDERS, serverEnvironment } from "~/state/server";
 import { useEnvironmentScope } from "~/state/session";
@@ -20,76 +24,101 @@ import { threadEnvironment } from "~/state/threads";
 import { useOrchestrationCommand } from "~/state/use-orchestration-command";
 import { DEFAULT_INTERACTION_MODE } from "~/types";
 import { ProviderInstanceIcon } from "../../chat/ProviderInstanceIcon";
-import { ProviderModelPicker } from "../../chat/ProviderModelPicker";
 import { ThreadDetailsControl } from "../../chat/ThreadDetailsControl";
 import {
   THREAD_DETAILS_PANEL_CHEVRON_CLASS,
   THREAD_DETAILS_PANEL_ICON_CLASS,
   THREAD_DETAILS_PANEL_LABEL_CLASS,
+  THREAD_DETAILS_PANEL_SPLIT_GROUP_CLASS,
+  THREAD_DETAILS_PANEL_SPLIT_SEPARATOR_CLASS,
 } from "../../chat/threadDetailsPanelStyles";
-import { SETTINGS_PICKER_TRIGGER_CLASSNAME } from "../../settings/settingsLayout";
 import { Button } from "../../ui/button";
-import { Popover, PopoverPopup, PopoverTrigger } from "../../ui/popover";
+import {
+  Menu,
+  MenuItem,
+  MenuItemLabel,
+  MenuPopup,
+  MenuSeparator,
+  MenuTrigger,
+} from "../../ui/menu";
 import { toastManager } from "../../ui/toast";
-import { Toggle, ToggleGroup } from "../../ui/toggle-group";
+import { Tooltip, TooltipPopup, TooltipTrigger } from "../../ui/tooltip";
+import { ReviewWorkflowDialog, type ReviewWorkflowEditorRequest } from "./ReviewWorkflowDialog";
 import {
   buildReviewPrompt,
-  MAX_REVIEWERS,
-  REVIEW_FLOWS,
-  type ReviewFlowId,
-  type ReviewSquad,
-} from "./reviewSquad.logic";
-import { saveReviewSquad, useSavedReviewSquad } from "./reviewSquadStore";
+  defaultReviewWorkflow,
+  type ReviewWorkflow,
+} from "./reviewWorkflows.logic";
+import { useReviewWorkflows } from "./reviewWorkflowsStore";
 
-const FLOW_COPY: Record<ReviewFlowId, { label: string; hint: string }> = {
-  standards: {
-    label: msg("Standards"),
-    hint: msg("Holds the changes to the repo's agent instructions and conventions."),
-  },
-  bugs: {
-    label: msg("Bugs"),
-    hint: msg("Hunts for regressions, edge cases and race conditions."),
-  },
-  security: {
-    label: msg("Security"),
-    hint: msg("Looks for auth gaps, leaked secrets and unsafe input."),
-  },
-  simplify: {
-    label: msg("Simplify"),
-    hint: msg("Finds dead code, duplication and needless abstraction."),
-  },
-};
+function ReviewerIcons({
+  workflow,
+  entryFor,
+}: {
+  workflow: ReviewWorkflow;
+  entryFor: (instanceId: ProviderInstanceId) => ProviderInstanceEntry | undefined;
+}) {
+  return (
+    <span className="flex shrink-0 -space-x-1" aria-hidden>
+      {workflow.reviewers.map((reviewer, index) => {
+        const entry = entryFor(reviewer.instanceId);
+        return entry ? (
+          <ProviderInstanceIcon
+            // oxlint-disable-next-line react/no-array-index-key -- the same reviewer can repeat
+            key={index}
+            driverKind={entry.driverKind}
+            displayName={entry.displayName}
+            accentColor={entry.accentColor}
+            acpRegistryAgentId={entry.acpRegistryAgentId}
+            acpRegistryIconUrl={entry.acpRegistryIconUrl}
+            className="size-4 rounded-full bg-popover ring-2 ring-popover"
+            iconClassName="size-4"
+          />
+        ) : null;
+      })}
+    </span>
+  );
+}
 
 export function ThreadReviewRow({ thread }: { thread: ScopedThreadRef }) {
   const gt = useGT();
-  const [open, setOpen] = useState(false);
-  const [starting, setStarting] = useState(false);
+  const anchorRef = useRef<HTMLDivElement | null>(null);
+  const [menuOpen, setMenuOpen] = useState(false);
+  const [editor, setEditor] = useState<ReviewWorkflowEditorRequest | null>(null);
   const shell = useQuietThreadShell(thread);
   const canOperate = useEnvironmentScope(thread.environmentId, AuthOrchestrationOperateScope);
   const settings = useEnvironmentSettings(thread.environmentId);
   const providers =
     useAtomValue(serverEnvironment.providersValueAtom(thread.environmentId)) ??
     EMPTY_SERVER_PROVIDERS;
-  const saved = useSavedReviewSquad();
+  const state = useReviewWorkflows();
   const startTurn = useOrchestrationCommand(threadEnvironment.startTurn, { reportFailure: false });
 
   if (!shell || !canOperate) return null;
 
-  const fallback = {
-    instanceId: shell.modelSelection.instanceId,
-    model: shell.modelSelection.model,
-  };
-  const squad: ReviewSquad = {
-    flow: saved?.flow ?? "standards",
-    reviewers: saved?.reviewers.length ? saved.reviewers : [fallback],
-  };
   const entries = providerInstanceEntriesFor(providers, settings, shell.projectId);
-  const entryFor = (instanceId: string) => entries.find((entry) => entry.instanceId === instanceId);
-  const update = (patch: Partial<ReviewSquad>) => saveReviewSquad({ ...squad, ...patch });
-  const count = squad.reviewers.length;
+  const entryFor = (instanceId: ProviderInstanceId) =>
+    entries.find((entry) => entry.instanceId === instanceId);
+  const primary = defaultReviewWorkflow(state);
 
-  const start = async () => {
-    setStarting(true);
+  const openNew = () =>
+    setEditor({
+      workflow: {
+        id: randomUUID(),
+        name: primary ? "" : gt("Full review", { $context: "example review workflow name" }),
+        reviewers: [
+          {
+            instanceId: shell.modelSelection.instanceId,
+            model: shell.modelSelection.model,
+            job: "bugs",
+          },
+        ],
+      },
+      isNew: true,
+      isDefault: primary === null,
+    });
+
+  const run = async (workflow: ReviewWorkflow) => {
     const result = await startTurn({
       environmentId: thread.environmentId,
       input: {
@@ -97,7 +126,7 @@ export function ThreadReviewRow({ thread }: { thread: ScopedThreadRef }) {
         message: {
           messageId: newMessageId(),
           role: "user",
-          text: buildReviewPrompt(squad),
+          text: buildReviewPrompt(workflow),
           attachments: [],
         },
         runtimeMode: shell.runtimeMode,
@@ -105,7 +134,6 @@ export function ThreadReviewRow({ thread }: { thread: ScopedThreadRef }) {
         dispatchMode: "queue",
       },
     });
-    setStarting(false);
     if (result._tag === "Failure") {
       toastManager.add({
         type: "error",
@@ -114,134 +142,138 @@ export function ThreadReviewRow({ thread }: { thread: ScopedThreadRef }) {
       });
       return;
     }
-    setOpen(false);
     toastManager.add({
       type: "success",
-      title: gt("Review started"),
+      title: gt("{name} started", { name: workflow.name }),
       description: gt(
         "{count, plural, one {# reviewer reports} other {# reviewers report}} back in this thread.",
-        { count },
+        { count: workflow.reviewers.length },
       ),
     });
   };
 
-  return (
-    <Popover open={open} onOpenChange={setOpen}>
-      <PopoverTrigger render={<ThreadDetailsControl size="xs" variant="ghost" part="row" panel />}>
-        <ScanSearchIcon className={THREAD_DETAILS_PANEL_ICON_CLASS} aria-hidden />
-        <span className={THREAD_DETAILS_PANEL_LABEL_CLASS}>
-          <T>Review</T>
-        </span>
-        <span className="ms-auto flex items-center gap-1.5">
-          <span className="flex -space-x-1" aria-hidden>
-            {squad.reviewers.map((reviewer, index) => {
-              const entry = entryFor(reviewer.instanceId);
-              return entry ? (
-                <ProviderInstanceIcon
-                  // oxlint-disable-next-line react/no-array-index-key -- the same model can repeat
-                  key={index}
-                  driverKind={entry.driverKind}
-                  displayName={entry.displayName}
-                  accentColor={entry.accentColor}
-                  acpRegistryAgentId={entry.acpRegistryAgentId}
-                  acpRegistryIconUrl={entry.acpRegistryIconUrl}
-                  size="compact"
-                  className="rounded-full bg-card ring-2 ring-card"
-                />
-              ) : null;
-            })}
+  const dialog = (
+    <ReviewWorkflowDialog
+      environmentId={thread.environmentId}
+      projectId={shell.projectId}
+      request={editor}
+      onClose={() => setEditor(null)}
+    />
+  );
+
+  if (!primary) {
+    return (
+      <>
+        <ThreadDetailsControl size="xs" variant="ghost" part="row" panel onClick={openNew}>
+          <ScanSearchIcon className={THREAD_DETAILS_PANEL_ICON_CLASS} aria-hidden />
+          <span className={THREAD_DETAILS_PANEL_LABEL_CLASS}>
+            <T>Set up a review</T>
           </span>
-          <ChevronDownIcon className={THREAD_DETAILS_PANEL_CHEVRON_CLASS} aria-hidden />
-        </span>
-      </PopoverTrigger>
-      <PopoverPopup align="end" width="md" padding="compact">
-        <div className="flex flex-col gap-3 py-1">
-          <div className="grid gap-1.5">
-            <span className="text-xs font-medium text-muted-foreground">
-              <T>Flow</T>
-            </span>
-            <ToggleGroup
-              aria-label={gt("Review flow")}
-              className="w-full *:flex-1"
-              value={[squad.flow]}
-              onValueChange={(values) => {
-                const flow = REVIEW_FLOWS.find((candidate) => candidate.id === values[0])?.id;
-                if (flow) update({ flow });
-              }}
-            >
-              {REVIEW_FLOWS.map((flow) => (
-                <Toggle key={flow.id} value={flow.id}>
-                  {m(FLOW_COPY[flow.id].label)}
-                </Toggle>
-              ))}
-            </ToggleGroup>
-            <p className="text-xs text-muted-foreground">{m(FLOW_COPY[squad.flow].hint)}</p>
-          </div>
+          <PlusIcon className={cn("ms-auto", THREAD_DETAILS_PANEL_CHEVRON_CLASS)} aria-hidden />
+        </ThreadDetailsControl>
+        {dialog}
+      </>
+    );
+  }
 
-          <div className="grid gap-1.5">
-            <span className="text-xs font-medium text-muted-foreground">
-              <T>Reviewers</T>
+  return (
+    <>
+      <div
+        role="group"
+        aria-label={gt("Review workflows")}
+        className={THREAD_DETAILS_PANEL_SPLIT_GROUP_CLASS}
+        ref={anchorRef}
+      >
+        <Tooltip>
+          <TooltipTrigger
+            render={
+              <ThreadDetailsControl
+                size="xs"
+                variant="ghost"
+                part="primary"
+                panel
+                aria-label={gt("Run {name}", { name: primary.name })}
+                onClick={() => void run(primary)}
+              />
+            }
+          >
+            <ScanSearchIcon className={THREAD_DETAILS_PANEL_ICON_CLASS} aria-hidden />
+            <span className={cn("min-w-0 truncate", THREAD_DETAILS_PANEL_LABEL_CLASS)}>
+              {primary.name}
             </span>
-            {squad.reviewers.map((reviewer, index) => (
-              // oxlint-disable-next-line react/no-array-index-key -- the same model can repeat
-              <div key={index} className="flex items-center gap-1">
-                <div className="min-w-0 flex-1 *:w-full">
-                  <ProviderModelPicker
-                    environmentId={thread.environmentId}
-                    activeInstanceId={reviewer.instanceId}
-                    model={reviewer.model}
-                    lockedProvider={null}
-                    instanceEntries={entries}
-                    modelOptionsByInstance={getCustomModelOptionsByInstance(
-                      settings,
-                      providers,
-                      reviewer.instanceId,
-                      reviewer.model,
-                    )}
-                    isComposerOwned={false}
-                    triggerClassName={`${SETTINGS_PICKER_TRIGGER_CLASSNAME} w-full`}
-                    onInstanceModelChange={(instanceId, model) =>
-                      update({
-                        reviewers: squad.reviewers.map((current, at) =>
-                          at === index ? { instanceId, model } : current,
-                        ),
-                      })
-                    }
-                  />
-                </div>
-                <Button
-                  size="icon-sm"
-                  variant="ghost-muted"
-                  aria-label={gt("Remove reviewer")}
-                  disabled={count === 1}
-                  onClick={() =>
-                    update({ reviewers: squad.reviewers.filter((_, at) => at !== index) })
-                  }
-                >
-                  <XIcon />
-                </Button>
-              </div>
-            ))}
-            {count < MAX_REVIEWERS ? (
-              <Button
+            <span className="ms-auto flex">
+              <ReviewerIcons workflow={primary} entryFor={entryFor} />
+            </span>
+          </TooltipTrigger>
+          <TooltipPopup side="top">{gt("Run {name}", { name: primary.name })}</TooltipPopup>
+        </Tooltip>
+        <span aria-hidden="true" className={THREAD_DETAILS_PANEL_SPLIT_SEPARATOR_CLASS} />
+        <Menu open={menuOpen} onOpenChange={setMenuOpen}>
+          <MenuTrigger
+            render={
+              <ThreadDetailsControl
                 size="sm"
-                variant="ghost-muted"
-                className="justify-start"
-                onClick={() =>
-                  update({ reviewers: [...squad.reviewers, squad.reviewers.at(-1) ?? fallback] })
-                }
-              >
-                <PlusIcon />
-                <T>Add reviewer</T>
-              </Button>
-            ) : null}
-          </div>
-
-          <Button disabled={starting} onClick={() => void start()}>
-            {gt("{count, plural, one {Start # reviewer} other {Start # reviewers}}", { count })}
-          </Button>
-        </div>
-      </PopoverPopup>
-    </Popover>
+                variant="ghost"
+                part="secondary"
+                panel
+                aria-label={gt("Review workflows")}
+              />
+            }
+          >
+            <ChevronDownIcon className={THREAD_DETAILS_PANEL_CHEVRON_CLASS} />
+          </MenuTrigger>
+          <MenuPopup align="end" anchor={anchorRef} className="w-(--anchor-width)">
+            {state.workflows.map((workflow) => (
+              <MenuItem key={workflow.id} className="group" onClick={() => void run(workflow)}>
+                {workflow.id === primary.id ? (
+                  <StarIcon className="size-4 fill-current text-muted-foreground" />
+                ) : (
+                  <ScanSearchIcon className="size-4" />
+                )}
+                <MenuItemLabel>{workflow.name}</MenuItemLabel>
+                <span className="relative ms-auto flex h-6 min-w-6 items-center justify-end">
+                  <span className="transition-opacity group-hover:opacity-0 group-focus-visible:opacity-0">
+                    <ReviewerIcons workflow={workflow} entryFor={entryFor} />
+                  </span>
+                  <span className="pointer-events-none absolute right-0 top-1/2 flex -translate-y-1/2 opacity-0 transition-opacity group-hover:pointer-events-auto group-hover:opacity-100 group-focus-visible:pointer-events-auto group-focus-visible:opacity-100">
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon-xs"
+                      className="size-6"
+                      aria-label={gt("Edit {name}", { name: workflow.name })}
+                      onPointerDown={(event) => {
+                        event.preventDefault();
+                        event.stopPropagation();
+                      }}
+                      onClick={(event) => {
+                        event.preventDefault();
+                        event.stopPropagation();
+                        setMenuOpen(false);
+                        setEditor({
+                          workflow,
+                          isNew: false,
+                          isDefault: workflow.id === primary.id,
+                        });
+                      }}
+                    >
+                      <SettingsIcon className="size-3.5" />
+                    </Button>
+                  </span>
+                </span>
+              </MenuItem>
+            ))}
+            <MenuSeparator />
+            <MenuItem onClick={openNew}>
+              <PlusIcon className="size-4" />
+              <MenuItemLabel>
+                <T>New workflow</T>
+              </MenuItemLabel>
+            </MenuItem>
+          </MenuPopup>
+        </Menu>
+      </div>
+      {dialog}
+    </>
   );
 }
