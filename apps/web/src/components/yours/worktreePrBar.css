@@ -41,3 +41,18 @@
   font-size: 0.75rem;
   font-weight: 500;
 }
+
+/* Fork-only: buttons share the row tint instead of a white fill. */
+[data-worktree-pr-tone]:not([data-worktree-pr-tone="neutral"]) [data-slot="button"] {
+  background-color: transparent;
+  box-shadow: none;
+}
+
+[data-worktree-pr-tone]:not([data-worktree-pr-tone="neutral"]) [data-slot="button"]::before {
+  box-shadow: none;
+}
+
+[data-worktree-pr-tone]:not([data-worktree-pr-tone="neutral"])
+  [data-slot="button"]:is(:hover, [data-pressed]) {
+  background-color: var(--accent);
+}
