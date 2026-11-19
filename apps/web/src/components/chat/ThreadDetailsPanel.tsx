@@ -45,6 +45,7 @@ import {
   THREAD_DETAILS_PANEL_LABEL_CLASS,
 } from "./threadDetailsPanelStyles";
 import { Menu, MenuPopup } from "../ui/menu";
+import { ThreadReviewRow } from "../yours/review/ThreadReviewRow";
 
 const GitActionsControl = memo(BaseGitActionsControl);
 
@@ -178,6 +179,8 @@ export function ThreadDetailsPanel(props: ThreadDetailsPanelProps) {
             offersGit &&
             props.activeProjectName !== undefined &&
             (visible.gitActions || (visible.changes && props.isGitRepo)),
+          // Fork-only: review squads need a started thread to send to.
+          review: offersGit && props.isGitRepo && !props.draftId && visible.review,
         };
         return (
           <>
@@ -232,7 +235,7 @@ export function ThreadDetailsPanel(props: ThreadDetailsPanelProps) {
                 </ThreadDetailsSection>
               ) : null}
 
-              {show.branch || show.pullRequests || show.git ? (
+              {show.branch || show.pullRequests || show.git || show.review ? (
                 <ThreadDetailsSection
                   headingId="thread-details-version-control-heading"
                   title={gt("Version Control")}
@@ -262,6 +265,7 @@ export function ThreadDetailsPanel(props: ThreadDetailsPanelProps) {
                         {...(props.onOpenChanges ? { onOpenChanges: props.onOpenChanges } : {})}
                       />
                     ) : null}
+                    {show.review ? <ThreadReviewRow thread={activeThreadRef} /> : null}
                   </div>
                 </ThreadDetailsSection>
               ) : null}
