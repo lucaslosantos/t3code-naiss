@@ -13,7 +13,7 @@ export const THREAD_DETAILS_ITEMS = [
     label: msg("Changes", { $context: "thread details item: version control changes" }),
     defaultVisible: true,
   },
-  // Fork-only: parallel review squads.
+  // Fork-only: per-project review workflows.
   { id: "review", label: msg("Review"), defaultVisible: true },
   {
     id: "servers",
