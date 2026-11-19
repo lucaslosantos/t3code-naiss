@@ -23,6 +23,7 @@ type HerdThread = Pick<
   | "lineage"
   | "delegatedFrom"
   | "archivedAt"
+  | "settledOverride"
   | "runtime"
   | "hasPendingApprovals"
   | "hasPendingUserInput"
@@ -59,7 +60,7 @@ function resolveHerdMood(thread: HerdThread): BusyMood | null {
 const moodOrder: Record<MascotMood, number> = { waiting: 0, failed: 1, working: 2, idle: 2 };
 
 /**
- * Top-level threads that are busy or were just visited, most urgent first, then most recently
+ * Top-level threads that are busy or were just visited and not settled, most urgent first, then most recently
  * visited, so the thread you leave takes a place in the stack. Subagents and side chats stay with
  * their parent. `visits` holds thread keys, most recent first.
  */
@@ -75,6 +76,7 @@ export function buildMascotHerd(
     .flatMap((thread) => {
       if (
         thread.archivedAt !== null ||
+        thread.settledOverride === "settled" ||
         thread.lineage.sideChat === true ||
         thread.lineage.relationshipToParent === "subagent" ||
         thread.delegatedFrom != null
