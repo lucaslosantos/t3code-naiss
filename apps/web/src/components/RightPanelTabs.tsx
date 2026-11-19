@@ -112,6 +112,7 @@ import { observeResize } from "~/lib/observeResize";
 import { surfaceShortcutKey } from "~/lib/surfaceShortcutKey";
 
 export interface RightPanelTabsProps {
+  worktreeActions?: ReactNode;
   mode: PreviewPanelMode;
   maximized?: boolean;
   open?: boolean;
@@ -1582,6 +1583,7 @@ export function RightPanelTabs(props: RightPanelTabsProps) {
           />
         ) : null}
       </div>
+      {props.worktreeActions}
       <div
         className={cn("flex min-h-0 flex-1 flex-col", props.bottomDockFills && "hidden")}
         data-right-panel-surface-content

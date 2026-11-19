@@ -1,3 +1,4 @@
+import { writeHandoffToComposer } from "./pullRequest/usePullRequestActions";
 import { ChildThreadApprovals } from "./chat/ChildThreadApprovals";
 import { workspaceAreaProps } from "../lib/workspaceFocus";
 import { sourceControlClients } from "@t3tools/client-runtime/source-control-clients";
@@ -381,6 +382,7 @@ import { useAtomQueryRunner } from "../state/use-atom-query-runner";
 import { observeResize } from "~/lib/observeResize";
 import { ThreadVisitWatermark } from "./chat/ThreadVisitWatermark";
 import { ChatTerminalDrawers } from "./chat/ChatTerminalDrawers";
+import { WorktreePrBar } from "./yours/WorktreePrBar";
 import { ChatRightPanel } from "./chat/ChatRightPanel";
 import { useRightTerminalDock } from "./yours/RightTerminalDock";
 import { useDraftEnvironmentRouting } from "./chat/useDraftEnvironmentRouting";
@@ -4025,6 +4027,29 @@ export default function ChatView(props: ChatViewProps) {
 
       {rightPanelPresent && activeThreadRef && !embedded ? (
         <ChatRightPanel
+          worktreeActions={
+            rightPanelOpen &&
+            !queuedRunEdit.editingRunId &&
+            canOperateThread &&
+            activeThread?.worktreePath &&
+            supportsPullRequests &&
+            activeProject &&
+            gitStatusQuery.data?.hasPrimaryRemote &&
+            gitStatusQuery.data.refName &&
+            !gitStatusQuery.data.isDefaultRef ? (
+              <WorktreePrBar
+                thread={activeThreadRef}
+                projectId={activeProject.id}
+                pr={gitStatusQuery.data.pr}
+                onPrompt={(prompt) => {
+                  writeHandoffToComposer(activeThreadRef, { prompt });
+                  if (shouldUsePlanSidebarSheet) closePreviewPanelStable();
+                  else if (rightPanelMaximized) toggleRightPanelMaximizedStable();
+                  scheduleComposerFocusStable();
+                }}
+              />
+            ) : null
+          }
           sheet={shouldUsePlanSidebarSheet}
           workspaceLayoutElement={workspaceLayoutElement}
           widthStorageKey={`t3code:preview-panel-width:${activeThreadKey}`}
