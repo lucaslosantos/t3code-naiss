@@ -2,6 +2,8 @@
 
 Newest first. Each entry: date, what changed (plain words), merge commit.
 
+- 2026-11-19: Swapping threads from the mascot stack flies the chosen companion into the main spot, where it lands and perks up, while the one you left shrinks back behind it. (merge 567419292f)
+
 - 2026-11-19: Moving to a thread from the mascot stack swaps places: the thread you left stays in the stack instead of disappearing. (merge 7a9123b4d5)
 
 - 2026-11-19: A small mascot for each busy thread sits tucked behind the companion, opens into a row on hover or when a thread needs you, and takes you to that thread when clicked. (merge 9c6b72005a)
