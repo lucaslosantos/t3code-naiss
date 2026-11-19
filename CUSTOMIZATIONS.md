@@ -2,6 +2,8 @@
 
 Newest first. Each entry: date, what changed (plain words), merge commit.
 
+- 2026-11-19: Worktrees show pull request status, stack layers, and chat actions in the right panel.
+
 - 2026-11-19: Dropping a thread into a section follows the visible section as the sidebar shifts during a drag.
 
 - 2026-11-19: The Naiss Slush theme pairs a green Send button with readable selected threads and outlined toolbar toggles in dark mode. Apply it with `t3 theme set themes/naiss-slush.json`.
