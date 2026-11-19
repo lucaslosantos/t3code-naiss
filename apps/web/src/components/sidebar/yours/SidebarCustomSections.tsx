@@ -334,7 +334,7 @@ function CustomSection<T extends SectionThread>(props: {
               openMenu({ x: event.clientX, y: event.clientY });
             }}
             className={cn(
-              "flex h-8 w-full cursor-pointer items-center gap-2 rounded-md ps-8.5 pe-2 text-left text-xs font-semibold outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring/70",
+              "flex h-8 w-full cursor-pointer items-center gap-2 rounded-md ps-8 pe-2 text-left text-xs font-semibold outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring/70",
               lifted && "cursor-grabbing",
               highlighted || props.dragging || lifted
                 ? "text-sidebar-foreground"
@@ -354,8 +354,8 @@ function CustomSection<T extends SectionThread>(props: {
               )}
             />
           </button>
-          {/* Its own button beside the header's, since buttons cannot nest. */}
-          <span className="absolute top-1.5 left-1.5 flex">
+          {/* Its own button beside the header's, since buttons cannot nest. Centered over the thread icons. */}
+          <span className="absolute top-1.5 left-2 flex">
             <SectionIconPicker
               section={section}
               open={pickerOpen}
@@ -407,23 +407,14 @@ function CustomSection<T extends SectionThread>(props: {
         </>
       )}
       {threads.length > 0 ? (
-        <div className="relative ps-3">
-          <span
-            aria-hidden
-            className={cn(
-              "pointer-events-none absolute inset-y-1 start-1.5 w-px rounded-full opacity-35",
-              styles.dot,
-            )}
-          />
-          <ul className="flex flex-col gap-px">
-            {threads.map((thread) => props.renderThread(thread))}
-          </ul>
-        </div>
+        <ul className="flex flex-col gap-px">
+          {threads.map((thread) => props.renderThread(thread))}
+        </ul>
       ) : !section.collapsed ? (
         // Same height idle and mid-drag, so nothing shifts under the pointer.
         <div
           className={cn(
-            "ms-3 me-0.5 mb-1 flex h-7 items-center rounded-md border border-dashed ps-2.5 text-xs transition-colors duration-150 motion-reduce:transition-none",
+            "mb-1 flex h-7 items-center rounded-md border border-dashed ps-2.5 text-xs transition-colors duration-150 motion-reduce:transition-none",
             highlighted
               ? styles.dropHint
               : props.dragging
@@ -463,7 +454,7 @@ function SectionNameInput(props: {
     }
   };
   return (
-    <div className="flex h-8 items-center gap-2 ps-1.5 pe-2">
+    <div className="flex h-8 items-center gap-1 ps-2 pe-2">
       {props.glyph}
       <input
         autoFocus
