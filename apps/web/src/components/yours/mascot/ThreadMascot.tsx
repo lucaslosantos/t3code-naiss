@@ -4,7 +4,14 @@ import fallbackUrl from "@rive-app/canvas/rive_fallback.wasm?url";
 import { useNavigate } from "@tanstack/react-router";
 import { createPortal } from "react-dom";
 import * as Schema from "effect/Schema";
-import { useEffect, useEffectEvent, useRef, useState, type RefObject } from "react";
+import {
+  useEffect,
+  useEffectEvent,
+  useLayoutEffect,
+  useRef,
+  useState,
+  type RefObject,
+} from "react";
 
 import { useLocalStorage } from "../../../hooks/useLocalStorage";
 import { buildThreadRouteParams } from "../../../threadRoutes";
@@ -45,6 +52,21 @@ const maxMinis = 4;
 const tucked = (index: number) => 16 + index * 9;
 const spread = (index: number) => 51 + index * 44;
 const clamp = (fraction: number) => Math.max(0, Math.min(1, fraction));
+/** A small mascot's centre sits this far below the main one's. */
+const miniDrop = miniTop + mini / 2 - size / 2;
+const flightMs = 460;
+const flightEasing = "cubic-bezier(0.22, 1, 0.36, 1)";
+
+/**
+ * The swap in progress after a small mascot is clicked. It lives outside React because the
+ * thread view may remount on navigation, and both ends of the swap read it on their first frame.
+ */
+let flight: { from: string; to: string; offset: number; at: number } | null = null;
+const flying = (key: string, end: "from" | "to") =>
+  flight !== null &&
+  flight[end] === key &&
+  Date.now() - flight.at < 1000 &&
+  !matchMedia("(prefers-reduced-motion: reduce)").matches;
 
 /** Drives one Rive companion on `canvas`; `still` draws a frame and rests instead of idling. */
 function useCompanion(
@@ -112,23 +134,42 @@ function useCompanion(
 
 function MiniMascot({
   member,
+  offset,
   style,
   onOpen,
 }: {
   member: HerdMember;
+  offset: number;
   style: React.CSSProperties;
-  onOpen: () => void;
+  onOpen: (offset: number) => void;
 }) {
   const canvas = useRef<HTMLCanvasElement>(null);
+  const button = useRef<HTMLButtonElement>(null);
   useCompanion(canvas, member.mood, true);
+  const landOffset = useRef(offset);
+  // oxlint-disable-next-line t3code/no-unreasoned-state-sync -- the thread you left shrinks out of the main spot before its first paint
+  useLayoutEffect(() => {
+    if (!flying(member.key, "from")) return;
+    button.current?.animate(
+      [
+        {
+          transform: `translate(${-landOffset.current}px, ${-miniDrop}px) scale(${size / mini})`,
+          opacity: 0.6,
+        },
+        { transform: "none", opacity: 1 },
+      ],
+      { duration: flightMs, easing: flightEasing },
+    );
+  }, [member.key]);
   return (
     <Tooltip>
       <TooltipTrigger
         render={
           <button
+            ref={button}
             type="button"
             aria-label={`${member.title}: ${moodLabels[member.mood]}`}
-            onClick={onOpen}
+            onClick={() => onOpen(offset)}
             className="pointer-events-auto absolute size-14 cursor-pointer rounded-full outline-none transition-[translate] duration-300 ease-out focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset motion-reduce:transition-none"
             style={style}
           />
@@ -151,6 +192,27 @@ export default function ThreadMascot({ mood, threadKey }: { mood: MascotMood; th
   const navigate = useNavigate();
   // oxlint-disable-next-line t3code/no-unreasoned-state-sync -- the visit trail is a module store shared across thread views
   useEffect(() => recordMascotVisit(threadKey), [threadKey]);
+  const flyIn = useEffectEvent((key: string) => {
+    if (!flight || !flying(key, "to") || !canvas.current) return;
+    const { offset } = flight;
+    playReaction("flap");
+    const landing = canvas.current.animate(
+      [
+        { transform: `translate(${offset}px, ${miniDrop}px) scale(${mini / size})` },
+        { transform: "translate(0, -6px) scale(1.04)", offset: 0.7 },
+        { transform: "translate(0, 0) scale(1.06, 0.94)", offset: 0.86 },
+        { transform: "none" },
+      ],
+      { duration: flightMs + 120, easing: flightEasing },
+    );
+    landing.onfinish = () => playReaction("perk");
+    return landing;
+  });
+  // oxlint-disable-next-line t3code/no-unreasoned-state-sync -- the chosen thread's companion flies in from its small mascot before the first paint
+  useLayoutEffect(() => {
+    const landing = flyIn(threadKey);
+    return () => landing?.cancel();
+  }, [threadKey]);
   const herd = useMascotHerd().filter((member) => member.key !== threadKey);
   const [position, savePosition] = useLocalStorage(
     "t3code:luko:mascot-position",
@@ -237,14 +299,21 @@ export default function ThreadMascot({ mood, threadKey }: { mood: MascotMood; th
               left: size / 2 - mini / 2,
               top: miniTop,
               translate: `${dirX * (open ? spread(index) : tucked(index))}px 0`,
+              transitionDelay: open ? `${index * 25}ms` : "0ms",
               zIndex: maxMinis - index,
             }}
-            onOpen={() =>
+            offset={dirX * (open ? spread(index) : tucked(index))}
+            onOpen={(offset) => {
+              flight = { from: threadKey, to: member.key, offset, at: Date.now() };
+              // Folding the stack lets the thread you left settle behind the companion.
+              clearTimeout(closeTimer.current);
+              setHovered(false);
+              setCalling(false);
               void navigate({
                 to: "/$environmentId/$threadId",
                 params: buildThreadRouteParams(member.ref),
-              })
-            }
+              });
+            }}
           />
         ))}
         {overflow > 0 ? (
