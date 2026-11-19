@@ -129,6 +129,8 @@ import {
   GitActionProgressEvent,
   VcsSwitchRefInput,
   VcsSwitchRefResult,
+  VcsContinueFromDefaultInput,
+  VcsContinueFromDefaultResult,
   GitCommandError,
   VcsCreateRefInput,
   VcsCreateRefResult,
@@ -492,6 +494,8 @@ export const WS_METHODS = {
   vcsRemoveWorktree: "vcs.removeWorktree",
   vcsCreateRef: "vcs.createRef",
   vcsSwitchRef: "vcs.switchRef",
+  // Fork-only
+  vcsContinueFromDefault: "vcs.continueFromDefault",
   vcsInit: "vcs.init",
 
   gitRunStackedAction: "git.runStackedAction",
@@ -1759,6 +1763,13 @@ const WsVcsSwitchRefRpc = Rpc.make(WS_METHODS.vcsSwitchRef, {
   error: Schema.Union([GitCommandError, EnvironmentAuthorizationError]),
 });
 
+// Fork-only
+const WsVcsContinueFromDefaultRpc = Rpc.make(WS_METHODS.vcsContinueFromDefault, {
+  payload: VcsContinueFromDefaultInput,
+  success: VcsContinueFromDefaultResult,
+  error: Schema.Union([GitCommandError, EnvironmentAuthorizationError]),
+});
+
 const WsVcsInitRpc = Rpc.make(WS_METHODS.vcsInit, {
   payload: VcsInitInput,
   error: Schema.Union([VcsError, EnvironmentAuthorizationError]),
@@ -2429,6 +2440,7 @@ export const WsRpcGroup = RpcGroup.make(
   WsVcsRemoveWorktreeRpc,
   WsVcsCreateRefRpc,
   WsVcsSwitchRefRpc,
+  WsVcsContinueFromDefaultRpc,
   WsVcsInitRpc,
   WsReviewGetBranchCommitsRpc,
   WsReviewGetDiffPreviewRpc,

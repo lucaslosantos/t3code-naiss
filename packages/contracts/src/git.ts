@@ -318,6 +318,18 @@ export const VcsSwitchRefResult = Schema.Struct({
 });
 export type VcsSwitchRefResult = typeof VcsSwitchRefResult.Type;
 
+// Fork-only: continue a merged worktree on a fresh branch cut from the latest default branch.
+export const VcsContinueFromDefaultInput = Schema.Struct({
+  cwd: TrimmedNonEmptyStringSchema,
+});
+export type VcsContinueFromDefaultInput = typeof VcsContinueFromDefaultInput.Type;
+
+export const VcsContinueFromDefaultResult = Schema.Struct({
+  refName: TrimmedNonEmptyStringSchema,
+  baseRefName: TrimmedNonEmptyStringSchema,
+});
+export type VcsContinueFromDefaultResult = typeof VcsContinueFromDefaultResult.Type;
+
 export const GitRunStackedActionResult = Schema.Struct({
   action: GitStackedAction,
   branch: Schema.Struct({
