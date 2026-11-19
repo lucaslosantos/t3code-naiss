@@ -56,4 +56,24 @@ describe("buildMascotHerd", () => {
       ["old-work", "working"],
     ]);
   });
+
+  it("keeps a visited idle thread behind urgent ones, most recent visit first", () => {
+    const key = (id: string) => buildMascotHerd([thread(id, { status: "running" })])[0]!.key;
+    const herd = buildMascotHerd(
+      [
+        thread("left-earlier", { status: "idle" }),
+        thread("left", { status: "idle" }),
+        thread("never-opened", { status: "idle" }),
+        thread("work", { status: "running" }),
+        thread("asks", { status: "running", approval: true }),
+      ],
+      [key("current"), key("left"), key("work"), key("left-earlier")],
+    );
+    expect(herd.map((member) => [member.title, member.mood])).toEqual([
+      ["asks", "waiting"],
+      ["left", "idle"],
+      ["work", "working"],
+      ["left-earlier", "idle"],
+    ]);
+  });
 });
