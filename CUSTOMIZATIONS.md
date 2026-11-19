@@ -2,6 +2,8 @@
 
 Newest first. Each entry: date, what changed (plain words), merge commit.
 
+- 2026-11-19: The Review row now works like run scripts: save several review workflows, each reviewer with its own model and job (Bugs, Security, Standards, Simplify); click to run the default one, or pick another from the menu. (merge 68290529e9)
+
 - 2026-11-19: A Review row in the thread details card starts several reviewer agents at once: pick a flow (Standards, Bugs, Security, Simplify) and any mix of providers and models, and the thread's agent merges what they find. (merge 5d9e2e793a)
 
 - 2026-11-19: Threads inside a section no longer sit indented under a guide line; their icons line up under the section's icon and their titles under the section's name. (merge ac3f02855e)
