@@ -2,6 +2,8 @@
 
 Newest first. Each entry: date, what changed (plain words), merge commit.
 
+- 2026-11-19: Threads inside a section no longer sit indented under a guide line; their icons line up under the section's icon and their titles under the section's name. (merge ac3f02855e)
+
 - 2026-11-19: Settling a thread takes its small mascot out of the stack. (merge 922d1c25ce)
 
 - 2026-11-19: Swapping threads from the mascot stack flies the chosen companion into the main spot, where it lands and perks up, while the one you left shrinks back behind it. (merge 567419292f)
