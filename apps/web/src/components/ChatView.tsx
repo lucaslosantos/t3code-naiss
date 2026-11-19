@@ -3345,6 +3345,7 @@ export default function ChatView(props: ChatViewProps) {
     !queuedRunEdit.editingRunId &&
     canOperateThread &&
     supportsPullRequests &&
+    (canWriteSourceControl || gitStatusQuery.data?.pr) &&
     activeProject &&
     (gitStatusQuery.data
       ? gitStatusQuery.data.hasPrimaryRemote &&
@@ -3381,7 +3382,9 @@ export default function ChatView(props: ChatViewProps) {
           state={deviceState}
         />
       )}
-      {rightPanelControlsAtRoot && !embedded ? panelLayoutControls : null}
+      {rightPanelControlsAtRoot && !embedded && !(rightPanelOpen && worktreeActions)
+        ? panelLayoutControls
+        : null}
       <div
         className={cn(
           "flex min-h-0 min-w-0 flex-col overflow-x-hidden",

@@ -1394,7 +1394,7 @@ export function RightPanelTabs(props: RightPanelTabsProps) {
         <div
           className={cn(
             "shrink-0",
-            props.mode === "inline" && "pr-32 wco:mr-(--workspace-native-controls-inset)",
+            ownsDesktopTitleBar && "wco:pr-(--workspace-native-controls-inset)",
           )}
         >
           {props.worktreeActions}
