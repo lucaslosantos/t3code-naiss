@@ -1,5 +1,6 @@
 // Fork-only: always-present sidebar button that hands app changes to an agent.
 import { scopeProjectRef } from "@t3tools/client-runtime/environment";
+import { T, useGT, useMessages } from "gt-react";
 import { PaletteIcon } from "lucide-react";
 import { Fragment, memo } from "react";
 
@@ -28,14 +29,18 @@ export const MakeItMineButton = memo(function MakeItMineButton() {
   const projects = useProjects();
   const handleNewThread = useNewThreadHandler();
   const { isMobile, setOpenMobile } = useSidebar();
+  const gt = useGT();
+  const m = useMessages();
 
   const run = async (action: MakeItMineActionSpec) => {
     const project = findForkProject(projects);
     if (project === null) {
       toastManager.add({
         type: "warning",
-        title: "Your T3 Code folder isn't a project yet",
-        description: `Add the "${FORK_FOLDER_NAME}" folder as a project, then try again.`,
+        title: gt("Your T3 Code folder isn’t a project yet"),
+        description: gt("Add the “{folder}” folder as a project, then try again.", {
+          folder: FORK_FOLDER_NAME,
+        }),
       });
       return;
     }
@@ -54,20 +59,24 @@ export const MakeItMineButton = memo(function MakeItMineButton() {
         <Tooltip>
           <TooltipTrigger
             render={
-              <MenuTrigger render={<SidebarMenuButton aria-label="Make it mine" size="icon" />} />
+              <MenuTrigger
+                render={<SidebarMenuButton aria-label={gt("Make it mine")} size="icon" />}
+              />
             }
           >
             <PaletteIcon />
           </TooltipTrigger>
-          <TooltipPopup side="top">Make it mine</TooltipPopup>
+          <TooltipPopup side="top">
+            <T>Make it mine</T>
+          </TooltipPopup>
         </Tooltip>
         <MenuPopup side="top" align="start">
           {MAKE_IT_MINE_ACTIONS.map((action, index) => (
             <Fragment key={action.id}>
               {index === 1 ? <MenuSeparator /> : null}
               <MenuItem onClick={() => void run(action)}>
-                {action.label}
-                <MenuItemDetail>{action.detail}</MenuItemDetail>
+                {m(action.label)}
+                <MenuItemDetail>{m(action.detail)}</MenuItemDetail>
               </MenuItem>
             </Fragment>
           ))}

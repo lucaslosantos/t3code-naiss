@@ -1,5 +1,7 @@
 // Fork-only: the "Make it mine" sidebar button. Kept in its own folder so upstream merges stay clean.
 
+import { msg } from "gt-react";
+
 /** Folder name of this fork's checkout. The button opens threads in that project. */
 export const FORK_FOLDER_NAME = "t3code-naiss";
 
@@ -9,33 +11,33 @@ export interface MakeItMineActionSpec {
   readonly id: MakeItMineAction;
   readonly label: string;
   readonly detail: string;
-  /** Composer text. "change" leaves room for the user's own words. */
+  /** Composer text, sent to the agent so it stays English. "change" leaves room for the user's own words. */
   readonly prompt: string;
 }
 
 export const MAKE_IT_MINE_ACTIONS: ReadonlyArray<MakeItMineActionSpec> = [
   {
     id: "change",
-    label: "Change something…",
-    detail: "Describe it, the agent builds it",
+    label: msg("Change something…"),
+    detail: msg("Describe it, the agent builds it"),
     prompt: "Make it mine: ",
   },
   {
     id: "update",
-    label: "Update from T3 Code now",
-    detail: "Pull official updates, keep your changes",
+    label: msg("Update from T3 Code now"),
+    detail: msg("Pull official updates, keep your changes"),
     prompt: "Update my T3 Code from the official version now. Follow YOURS.md, section Updating.",
   },
   {
     id: "undo",
-    label: "Undo my last change",
-    detail: "Revert the most recent customization",
+    label: msg("Undo my last change"),
+    detail: msg("Revert the most recent customization"),
     prompt: "Undo my most recent customization. Follow YOURS.md, section Undo.",
   },
   {
     id: "rollback",
-    label: "Something broke, roll back",
-    detail: "Reinstall the previous build",
+    label: msg("Something broke, roll back"),
+    detail: msg("Reinstall the previous build"),
     prompt: "My app is broken. Roll back to the previous build. Follow YOURS.md, section Rollback.",
   },
 ];

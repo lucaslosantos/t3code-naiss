@@ -1,3 +1,4 @@
+import { msg } from "gt-react";
 import { scopedThreadKey, scopeThreadRef } from "@t3tools/client-runtime/environment";
 import type { EnvironmentThreadShell } from "@t3tools/client-runtime/state/models";
 import {
@@ -7,6 +8,7 @@ import {
 import type { SidebarCustomSection, SidebarSectionIcon } from "@t3tools/contracts";
 import { create } from "zustand";
 
+import { m } from "~/i18n/messages";
 import { getClientSettings, updateClientSettings } from "~/hooks/useSettings";
 import type { useThreadActions } from "~/hooks/useThreadActions";
 import { threadEnvironment } from "~/state/threads";
@@ -76,7 +78,7 @@ function failureToast(title: string, error: unknown) {
     stackedThreadToast({
       type: "error",
       title,
-      description: error instanceof Error ? error.message : "An error occurred.",
+      description: error instanceof Error ? error.message : m(msg("An error occurred.")),
     }),
   );
 }
@@ -133,7 +135,7 @@ export function useSectionMembership(
     });
     if (result._tag === "Success") return true;
     if (!isAtomCommandInterrupted(result)) {
-      failureToast("Failed to move thread", squashAtomCommandFailure(result));
+      failureToast(m(msg("Failed to move thread")), squashAtomCommandFailure(result));
     }
     return false;
   };

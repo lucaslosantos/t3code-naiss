@@ -35,6 +35,7 @@ export interface DockTerminalTab {
 export function dockTerminalTabs(
   layout: DockTerminalLayout,
   labelFor: (terminalId: string) => string,
+  runLabel = RUN_TERMINAL_LABEL,
 ): DockTerminalTab[] {
   const tabs = layout.terminalGroups.flatMap((group): DockTerminalTab[] => {
     const terminalId = group.terminalIds.includes(layout.activeTerminalId)
@@ -42,7 +43,7 @@ export function dockTerminalTabs(
       : group.terminalIds[0];
     if (!terminalId) return [];
     const run = group.terminalIds.includes(RUN_TERMINAL_ID);
-    const base = run ? RUN_TERMINAL_LABEL : labelFor(terminalId);
+    const base = run ? runLabel : labelFor(terminalId);
     const extra = group.terminalIds.length - 1;
     return [
       {

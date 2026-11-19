@@ -1,4 +1,5 @@
-import { resolveTerminalSessionLabel } from "@t3tools/shared/terminalLabels";
+import { resolveTerminalSessionLabel } from "@t3tools/shared/terminalLabelsCopy";
+import { T, useGT, useMessages } from "gt-react";
 import * as Schema from "effect/Schema";
 import { XIcon } from "lucide-react";
 import { useEffect, useEffectEvent, useRef, type PointerEvent as ReactPointerEvent } from "react";
@@ -34,6 +35,8 @@ export function SidebarTerminalSplit() {
 
 function SidebarTerminalPane() {
   const threadRef = useRouteThreadRef();
+  const gt = useGT();
+  const messages = useMessages();
   const terminalUiState = useTerminalUiStateStore((state) =>
     selectThreadTerminalUiState(state.terminalUiStateByThreadKey, threadRef),
   );
@@ -74,6 +77,7 @@ function SidebarTerminalPane() {
     resolveTerminalSessionLabel(
       terminalId,
       sessions?.find((session) => session.target.terminalId === terminalId)?.state.summary,
+      messages,
     );
   const tabs = terminalUiState.terminalGroups.flatMap((group) => {
     const terminalId = group.terminalIds.includes(terminalUiState.activeTerminalId)
@@ -146,7 +150,7 @@ function SidebarTerminalPane() {
       <div
         role="separator"
         aria-orientation="horizontal"
-        aria-label="Resize terminal"
+        aria-label={gt("Resize terminal")}
         className="absolute inset-x-0 -top-1 z-20 h-2 cursor-row-resize touch-none after:absolute after:inset-x-0 after:top-1/2 after:h-px after:transition-colors hover:after:bg-foreground/25 any-pointer-coarse:-top-2 any-pointer-coarse:h-4"
         onPointerDown={handlePointerDown}
         onPointerMove={handlePointerMove}
@@ -185,7 +189,7 @@ function SidebarTerminalPane() {
             ))
           ) : (
             <span className="truncate px-1 text-xs font-medium text-muted-foreground">
-              {tabs[0]?.label ?? "Terminal"}
+              {tabs[0]?.label ?? gt("Terminal")}
             </span>
           )}
         </div>
@@ -196,7 +200,7 @@ function SidebarTerminalPane() {
           <TooltipTrigger
             render={
               <Button
-                aria-label="Hide terminal"
+                aria-label={gt("Hide terminal")}
                 size="icon-xs"
                 variant="ghost-muted"
                 onClick={() => {
@@ -207,12 +211,14 @@ function SidebarTerminalPane() {
           >
             <XIcon className="size-3.5" />
           </TooltipTrigger>
-          <TooltipPopup side="bottom">Hide terminal</TooltipPopup>
+          <TooltipPopup side="bottom">
+            <T>Hide terminal</T>
+          </TooltipPopup>
         </Tooltip>
       </div>
       <div className="relative min-h-0 flex-1">
         <p className="absolute inset-0 flex items-center justify-center px-4 text-center text-xs text-muted-foreground/70">
-          Open a thread to use its terminal here.
+          <T>Open a thread to use its terminal here.</T>
         </p>
         <div ref={setSidebarTerminalHost} className="absolute inset-0 flex flex-col" />
       </div>

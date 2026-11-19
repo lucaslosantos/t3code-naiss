@@ -3,7 +3,8 @@ import {
   type ProjectScript,
   type ScopedThreadRef,
 } from "@t3tools/contracts";
-import { resolveTerminalSessionLabel } from "@t3tools/shared/terminalLabels";
+import { resolveTerminalSessionLabel } from "@t3tools/shared/terminalLabelsCopy";
+import { T, useGT, useMessages } from "gt-react";
 import { ChevronDownIcon, PlayIcon, PlusIcon, SquareIcon, XIcon } from "lucide-react";
 import { type PointerEvent as ReactPointerEvent, type ReactNode, useRef } from "react";
 
@@ -88,6 +89,7 @@ function RightTerminalDock(props: {
   const { threadRef } = props;
   const { collapsed, ratio: storedRatio } = useRightTerminalDockLayout();
   const ratio = clampTerminalPaneRatio(storedRatio, 0, RIGHT_DOCK_SPLIT);
+  const gt = useGT();
   const paneRef = useRef<HTMLDivElement | null>(null);
   const dragRef = useRef<{
     pointerId: number;
@@ -155,7 +157,7 @@ function RightTerminalDock(props: {
         <div
           role="separator"
           aria-orientation="horizontal"
-          aria-label="Resize terminal"
+          aria-label={gt("Resize terminal")}
           className="absolute inset-x-0 -top-1 z-20 h-2 cursor-row-resize touch-none after:absolute after:inset-x-0 after:top-1/2 after:h-px after:transition-colors hover:after:bg-foreground/25 any-pointer-coarse:-top-2 any-pointer-coarse:h-4"
           onPointerDown={handlePointerDown}
           onPointerMove={handlePointerMove}
@@ -210,13 +212,20 @@ function RightTerminalDockHeader(props: {
   });
   const canOperate = useEnvironmentScope(threadRef.environmentId, AuthTerminalOperateScope);
   const terminalActions = useThreadTerminalActions(threadRef);
+  const gt = useGT();
+  const messages = useMessages();
 
   const labelFor = (terminalId: string) =>
     resolveTerminalSessionLabel(
       terminalId,
       sessions?.find((session) => session.target.terminalId === terminalId)?.state.summary,
+      messages,
     );
-  const tabs = dockTerminalTabs(terminalUiState, labelFor);
+  const tabs = dockTerminalTabs(
+    terminalUiState,
+    labelFor,
+    gt("Run", { $context: "terminal tab that runs project scripts" }),
+  );
 
   const activate = (tab: DockTerminalTab) => {
     setActiveTerminal(threadRef, tab.terminalId);
@@ -252,7 +261,7 @@ function RightTerminalDockHeader(props: {
         <TooltipTrigger
           render={
             <Button
-              aria-label={props.collapsed ? "Expand terminal" : "Collapse terminal"}
+              aria-label={props.collapsed ? gt("Expand terminal") : gt("Collapse terminal")}
               aria-expanded={!props.collapsed}
               size="icon-xs"
               variant="ghost-muted"
@@ -263,12 +272,12 @@ function RightTerminalDockHeader(props: {
           <ChevronDownIcon className={cn("size-3.5", props.collapsed && "rotate-180")} />
         </TooltipTrigger>
         <TooltipPopup side="top">
-          {props.collapsed ? "Expand terminal" : "Collapse terminal"}
+          {props.collapsed ? <T>Expand terminal</T> : <T>Collapse terminal</T>}
         </TooltipPopup>
       </Tooltip>
       <div
         role="tablist"
-        aria-label="Terminals"
+        aria-label={gt("Terminals")}
         className="flex h-full min-w-0 items-stretch overflow-x-auto [scrollbar-width:none]"
       >
         {tabs.map((tab) => (
@@ -294,7 +303,7 @@ function RightTerminalDockHeader(props: {
             </button>
             <button
               type="button"
-              aria-label={`Close ${tab.label}`}
+              aria-label={gt("Close {name}", { name: tab.label })}
               disabled={!canOperate}
               className={cn(
                 "flex size-4 shrink-0 cursor-pointer items-center justify-center rounded-sm text-muted-foreground hover:bg-accent hover:text-foreground focus-visible:opacity-100 disabled:hidden",
@@ -317,7 +326,7 @@ function RightTerminalDockHeader(props: {
         <TooltipTrigger
           render={
             <Button
-              aria-label="New terminal"
+              aria-label={gt("New terminal")}
               className="shrink-0"
               disabled={!canOperate}
               size="icon-xs"
@@ -328,7 +337,9 @@ function RightTerminalDockHeader(props: {
         >
           <PlusIcon className="size-3.5" />
         </TooltipTrigger>
-        <TooltipPopup side="top">New terminal</TooltipPopup>
+        <TooltipPopup side="top">
+          <T>New terminal</T>
+        </TooltipPopup>
       </Tooltip>
       <div className="min-w-2 flex-1" />
       <TerminalPlacementMenu threadRef={threadRef} current="right" variant="header" />
@@ -358,14 +369,18 @@ function RunScriptControl(props: {
     (props.preferredScriptId
       ? runnable.find((script) => script.id === props.preferredScriptId)
       : undefined) ?? primaryProjectScript(runnable);
+  const gt = useGT();
   if (!primary) return null;
+  const runLabel = props.busy
+    ? gt("Stop the running script")
+    : gt("Run {script}", { script: primary.name });
   return (
     <div className="ms-0.5 flex shrink-0 items-center">
       <Tooltip>
         <TooltipTrigger
           render={
             <Button
-              aria-label={props.busy ? "Stop the running script" : `Run ${primary.name}`}
+              aria-label={runLabel}
               disabled={!props.canOperate}
               size="xs"
               variant="ghost-muted"
@@ -374,17 +389,19 @@ function RunScriptControl(props: {
           }
         >
           {props.busy ? <SquareIcon className="size-3" /> : <PlayIcon className="size-3" />}
-          {props.busy ? "Stop" : "Run"}
+          {props.busy ? (
+            <T context="button: stop a running script">Stop</T>
+          ) : (
+            <T context="button: run a project script">Run</T>
+          )}
         </TooltipTrigger>
-        <TooltipPopup side="top">
-          {props.busy ? "Stop the running script" : `Run ${primary.name}`}
-        </TooltipPopup>
+        <TooltipPopup side="top">{runLabel}</TooltipPopup>
       </Tooltip>
       <Menu>
         <MenuTrigger
           render={
             <Button
-              aria-label="Choose a script to run"
+              aria-label={gt("Choose a script to run")}
               disabled={!props.canOperate}
               size="icon-xs"
               variant="ghost-muted"
@@ -396,7 +413,7 @@ function RunScriptControl(props: {
         <MenuPopup align="end" side="bottom" sideOffset={6} className="max-w-64">
           <MenuGroup>
             <MenuGroupLabel>
-              {props.busy ? "Run in another terminal" : "Run in the Run tab"}
+              {props.busy ? <T>Run in another terminal</T> : <T>Run in the Run tab</T>}
             </MenuGroupLabel>
             {runnable.map((script) => (
               <MenuItem key={script.id} onClick={() => props.onRunScript(script)}>

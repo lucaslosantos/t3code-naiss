@@ -3,6 +3,7 @@ import {
   type SidebarCustomSection,
   type SidebarSectionColor,
 } from "@t3tools/contracts";
+import { msg, T, useGT, useMessages } from "gt-react";
 import { SearchIcon } from "lucide-react";
 import { type RefObject, useState } from "react";
 
@@ -24,56 +25,56 @@ import { sectionDefinitions } from "./useCustomSections";
 /** Per-color classes. Tints sit near 12% so a chip reads as a hue, not a badge. */
 export const SECTION_COLOR_STYLES = {
   gray: {
-    label: "Gray",
+    label: msg("Gray", { $context: "section color" }),
     dot: "bg-sidebar-muted-foreground/60",
     chip: "bg-sidebar-foreground/8 text-sidebar-foreground/70",
     drop: "bg-sidebar-foreground/4 before:bg-sidebar-foreground/35",
     dropHint: "border-sidebar-foreground/30 text-sidebar-foreground/80",
   },
   blue: {
-    label: "Blue",
+    label: msg("Blue", { $context: "section color" }),
     dot: "bg-blue-500",
     chip: "bg-blue-500/12 text-blue-600 dark:text-blue-400",
     drop: "bg-blue-500/6 before:bg-blue-500",
     dropHint: "border-blue-500/40 text-blue-600 dark:text-blue-400",
   },
   green: {
-    label: "Green",
+    label: msg("Green", { $context: "section color" }),
     dot: "bg-emerald-500",
     chip: "bg-emerald-500/12 text-emerald-600 dark:text-emerald-400",
     drop: "bg-emerald-500/6 before:bg-emerald-500",
     dropHint: "border-emerald-500/40 text-emerald-600 dark:text-emerald-400",
   },
   yellow: {
-    label: "Yellow",
+    label: msg("Yellow", { $context: "section color" }),
     dot: "bg-amber-400",
     chip: "bg-amber-400/15 text-amber-600 dark:text-amber-400",
     drop: "bg-amber-400/8 before:bg-amber-400",
     dropHint: "border-amber-400/50 text-amber-600 dark:text-amber-400",
   },
   orange: {
-    label: "Orange",
+    label: msg("Orange", { $context: "section color" }),
     dot: "bg-orange-500",
     chip: "bg-orange-500/12 text-orange-600 dark:text-orange-400",
     drop: "bg-orange-500/6 before:bg-orange-500",
     dropHint: "border-orange-500/40 text-orange-600 dark:text-orange-400",
   },
   red: {
-    label: "Red",
+    label: msg("Red", { $context: "section color" }),
     dot: "bg-red-500",
     chip: "bg-red-500/12 text-red-600 dark:text-red-400",
     drop: "bg-red-500/6 before:bg-red-500",
     dropHint: "border-red-500/40 text-red-600 dark:text-red-400",
   },
   purple: {
-    label: "Purple",
+    label: msg("Purple", { $context: "section color" }),
     dot: "bg-violet-500",
     chip: "bg-violet-500/12 text-violet-600 dark:text-violet-400",
     drop: "bg-violet-500/6 before:bg-violet-500",
     dropHint: "border-violet-500/40 text-violet-600 dark:text-violet-400",
   },
   pink: {
-    label: "Pink",
+    label: msg("Pink", { $context: "section color" }),
     dot: "bg-pink-500",
     chip: "bg-pink-500/12 text-pink-600 dark:text-pink-400",
     drop: "bg-pink-500/6 before:bg-pink-500",
@@ -131,6 +132,7 @@ export function SectionIconPicker(props: {
   const { section, open, onOpenChange, triggerRef } = props;
   const color = normalizeSectionColor(section.color);
   const icon = resolveSectionIcon(section.icon);
+  const gt = useGT();
   return (
     <Popover open={open} onOpenChange={onOpenChange}>
       <PopoverTrigger
@@ -138,7 +140,7 @@ export function SectionIconPicker(props: {
           <button
             ref={triggerRef}
             type="button"
-            aria-label={`${section.name} icon and color`}
+            aria-label={gt("{name} icon and color", { name: section.name })}
             className="flex cursor-pointer rounded-md outline-none transition-opacity hover:opacity-75 focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring/70 motion-reduce:transition-none"
           />
         }
@@ -150,7 +152,7 @@ export function SectionIconPicker(props: {
         align="start"
         padding="none"
         anchor={triggerRef}
-        aria-label="Section icon"
+        aria-label={gt("Section icon")}
       >
         <SectionIconPanel section={section} color={color} icon={icon} />
       </PopoverPopup>
@@ -166,16 +168,22 @@ function SectionIconPanel(props: {
   const { section, color, icon } = props;
   const [tab, setTab] = useState<"icons" | "emoji">(icon.kind === "emoji" ? "emoji" : "icons");
   const styles = SECTION_COLOR_STYLES[color];
+  const gt = useGT();
+  const m = useMessages();
   return (
     <div className="flex w-64 flex-col gap-2.5 p-2.5">
-      <div role="radiogroup" aria-label="Color" className="flex items-center justify-between px-1">
+      <div
+        role="radiogroup"
+        aria-label={gt("Color", { $context: "section color" })}
+        className="flex items-center justify-between px-1"
+      >
         {SIDEBAR_SECTION_COLORS.map((option) => (
           <button
             key={option}
             type="button"
             role="radio"
             aria-checked={option === color}
-            aria-label={SECTION_COLOR_STYLES[option].label}
+            aria-label={m(SECTION_COLOR_STYLES[option].label)}
             onClick={() => sectionDefinitions.setColor(section.id, option)}
             className={cn(
               "flex size-6 cursor-pointer items-center justify-center rounded-full outline-none hover:bg-accent focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring/70",
@@ -193,7 +201,7 @@ function SectionIconPanel(props: {
         ))}
       </div>
       <ToggleGroup
-        aria-label="Icon type"
+        aria-label={gt("Icon type")}
         className="w-full *:flex-1"
         value={[tab]}
         onValueChange={(next) => {
@@ -201,8 +209,12 @@ function SectionIconPanel(props: {
           if (value === "icons" || value === "emoji") setTab(value);
         }}
       >
-        <Toggle value="icons">Icons</Toggle>
-        <Toggle value="emoji">Emoji</Toggle>
+        <Toggle value="icons">
+          <T>Icons</T>
+        </Toggle>
+        <Toggle value="emoji">
+          <T>Emoji</T>
+        </Toggle>
       </ToggleGroup>
       {tab === "icons" ? (
         <IconGrid section={section} icon={icon} chipClassName={styles.chip} />
@@ -225,6 +237,7 @@ function IconGrid(props: {
   const [query, setQuery] = useState("");
   const names = searchSectionIcons(query);
   const dotClassName = SECTION_COLOR_STYLES[normalizeSectionColor(section.color)].dot;
+  const gt = useGT();
   return (
     <div className="flex flex-col gap-2">
       <InputGroup>
@@ -236,8 +249,8 @@ function IconGrid(props: {
           size="sm"
           type="search"
           value={query}
-          placeholder="Search icons"
-          aria-label="Search icons"
+          placeholder={gt("Search icons")}
+          aria-label={gt("Search icons")}
           spellCheck={false}
           onChange={(event) => setQuery(event.currentTarget.value)}
         />
@@ -246,7 +259,7 @@ function IconGrid(props: {
         {query.trim() === "" ? (
           <button
             type="button"
-            aria-label="No icon, just the dot"
+            aria-label={gt("No icon, just the dot")}
             aria-pressed={icon.kind === "dot"}
             onClick={() => sectionDefinitions.setIcon(section.id, null)}
             className={cn(CELL, icon.kind === "dot" && props.chipClassName)}
@@ -271,7 +284,9 @@ function IconGrid(props: {
           );
         })}
         {names.length === 0 ? (
-          <p className="col-span-8 py-4 text-center text-xs text-muted-foreground">No icons</p>
+          <p className="col-span-8 py-4 text-center text-xs text-muted-foreground">
+            <T>No icons</T>
+          </p>
         ) : null}
       </div>
     </div>
@@ -289,6 +304,7 @@ function EmojiGrid(props: {
   const pasted = parseSingleEmoji(query);
   const matches = searchSectionEmoji(query);
   const shown = pasted !== null && !matches.includes(pasted) ? [pasted, ...matches] : matches;
+  const gt = useGT();
   return (
     <div className="flex flex-col gap-2">
       <InputGroup>
@@ -300,8 +316,8 @@ function EmojiGrid(props: {
           size="sm"
           type="search"
           value={query}
-          placeholder="Search or paste an emoji"
-          aria-label="Search emoji"
+          placeholder={gt("Search or paste an emoji")}
+          aria-label={gt("Search emoji")}
           spellCheck={false}
           onChange={(event) => {
             const value = event.currentTarget.value;
@@ -332,7 +348,7 @@ function EmojiGrid(props: {
         })}
         {shown.length === 0 ? (
           <p className="col-span-8 py-4 text-center text-xs text-muted-foreground">
-            No match. Paste any emoji to use it.
+            <T>No match. Paste any emoji to use it.</T>
           </p>
         ) : null}
       </div>
