@@ -3484,6 +3484,7 @@ export default function ChatView(props: ChatViewProps) {
               {!embedded && !backgroundThread && (
                 <Suspense fallback={null}>
                   <ThreadMascot
+                    threadKey={activeThreadKey ?? routeThreadKey}
                     mood={
                       activePendingApproval || activePendingUserInput
                         ? "waiting"
