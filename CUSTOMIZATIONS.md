@@ -2,6 +2,8 @@
 
 Newest first. Each entry: date, what changed (plain words), merge commit.
 
+- 2026-11-19: A small mascot for each busy thread sits tucked behind the companion, opens into a row on hover or when a thread needs you, and takes you to that thread when clicked. (merge 9c6b72005a)
+
 - 2026-11-19: Worktrees show pull request status, stack layers, and chat actions in a status-colored row above the right panel tabs, with PR and stack controls on the left and status on the right.
 
 - 2026-11-19: Dropping a thread into a section follows the visible section as the sidebar shifts during a drag.
