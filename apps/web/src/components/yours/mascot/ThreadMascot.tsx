@@ -201,7 +201,7 @@ function MiniMascot({
           width={112}
           height={112}
           aria-hidden="true"
-          className={member.mood === "idle" ? "size-14 opacity-60 grayscale" : "size-14"}
+          className={member.mood === "idle" ? "size-14 brightness-75 grayscale" : "size-14"}
         />
       </TooltipTrigger>
       <TooltipPopup side="top">
