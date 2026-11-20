@@ -68,9 +68,7 @@ const maxMinis = 4;
 /** How far each small mascot's centre sits from the main one's, tucked behind or opened into a row. */
 const tucked = (index: number) => 16 + index * 9;
 const spread = (index: number) => 51 + index * 44;
-/** How far a tucked mascot that wants you peeks out from behind the others. */
-const peek = { x: 10, y: -8 };
-/** Threads you've already read shrink and fade at the back of the stack. */
+/** Threads you've already read hide while the stack is tucked, and open small and grey at its end. */
 const seenScale = 0.8;
 const clamp = (fraction: number) => Math.max(0, Math.min(1, fraction));
 /** A small mascot's centre sits this far below the main one's. */
@@ -191,7 +189,7 @@ function MiniMascot({
             type="button"
             aria-label={`${member.title}: ${moodLabels[member.mood]}`}
             onClick={() => onOpen(offset)}
-            className="pointer-events-auto absolute size-14 origin-bottom cursor-pointer rounded-full outline-none transition-[translate,scale] duration-300 ease-out focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset motion-reduce:transition-none"
+            className="pointer-events-auto absolute size-14 origin-bottom cursor-pointer rounded-full outline-none transition-[translate,scale,opacity] duration-300 ease-out focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset motion-reduce:transition-none"
             style={style}
           />
         }
@@ -298,8 +296,7 @@ export default function ThreadMascot({
     },
     [],
   );
-  const offsetOf = (member: HerdMember, index: number) =>
-    dirX * (open ? spread(index) : tucked(index) + (wantsYou(member.mood) ? peek.x : 0));
+  const offsetOf = (index: number) => dirX * (open ? spread(index) : tucked(index));
   const openMember = (member: HerdMember, offset: number) => {
     flight = { from: threadKey, to: member.key, offset, at: Date.now() };
     // Folding the stack lets the thread you left settle behind the companion.
@@ -314,7 +311,7 @@ export default function ThreadMascot({
   const goNext = () => {
     if (!nextUp) return false;
     const index = shown.indexOf(nextUp);
-    openMember(nextUp, index === -1 ? dirX * tucked(0) : offsetOf(nextUp, index));
+    openMember(nextUp, index === -1 ? dirX * tucked(0) : offsetOf(index));
     return true;
   };
   const goNextLater = useEffectEvent(goNext);
@@ -414,12 +411,15 @@ export default function ThreadMascot({
                 style={{
                   left: size / 2 - mini / 2,
                   top: miniTop,
-                  translate: `${offsetOf(member, index)}px ${!open && wantsYou(member.mood) ? peek.y : 0}px`,
+                  translate: `${offsetOf(index)}px 0`,
                   scale: member.mood === "idle" ? seenScale : 1,
+                  ...(member.mood === "idle" && !open
+                    ? { opacity: 0, pointerEvents: "none" as const }
+                    : {}),
                   transitionDelay: open ? `${index * 25}ms` : "0ms",
                   zIndex: maxMinis - index,
                 }}
-                offset={offsetOf(member, index)}
+                offset={offsetOf(index)}
                 onOpen={(offset) => openMember(member, offset)}
               />
             ))}
@@ -427,7 +427,7 @@ export default function ThreadMascot({
               <span
                 aria-hidden="true"
                 className={`absolute top-1 z-20 flex h-[18px] min-w-[18px] items-center justify-center rounded-full px-1 text-2xs font-semibold tabular-nums ring-2 ring-background ${moodBadges[forYou[0]!.mood as keyof typeof moodBadges]}`}
-                style={{ [dirX > 0 ? "right" : "left"]: 6 }}
+                style={{ [dirX > 0 ? "left" : "right"]: 4 }}
               >
                 {forYou.length}
               </span>
