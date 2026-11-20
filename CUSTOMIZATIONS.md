@@ -2,7 +2,7 @@
 
 Newest first. Each entry: date, what changed (plain words), merge commit.
 
-- 2026-11-20: Finished threads you haven't read now show as green companions at the front of the mascot stack, next to the ones that need you; threads you've read stay tucked in grey at the back. A count on the companion's head, in the colour of the most urgent thread, says how many want you, and tapping the companion, the "Next unread" pill above the composer (lined up with its edge), the command palette or ⌘⇧U takes you to the next one, longest waiting first. (merges 9c81956f66, 3f5a29809e, d312fd52c0, 4c6f017e79, 72d7a1a555)
+- 2026-11-20: Finished threads you haven't read now show as green companions at the front of the mascot stack, next to the ones that need you; threads you've read stay tucked in solid grey at the back. A count on the companion's head, in the colour of the most urgent thread, says how many want you, and tapping the companion, the "Next unread" pill above the composer (lined up with its edge), the command palette or ⌘⇧U takes you to the next one, longest waiting first. (merges 9c81956f66, 3f5a29809e, d312fd52c0, 4c6f017e79, 72d7a1a555, 0a990e83b0)
 
 - 2026-11-20: Review workflows get an optional "After the review" box: what the agent should do once it has merged the reviewers' findings (leave it empty to stop at the list). Before starting reviewers, the agent now finds the right base branch and stops if there is nothing to review; when merging, it double-checks findings only one reviewer raised, says which reviewers failed, and lists what it dropped and why. (merge 98a06e7069)
 
