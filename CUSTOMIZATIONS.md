@@ -2,6 +2,8 @@
 
 Newest first. Each entry: date, what changed (plain words), merge commit.
 
+- 2026-11-20: Finished threads you haven't read now show as green companions that peek out of the mascot stack, next to the ones that need you; threads you've read shrink to grey at the back. A count on the companion says how many want you, and tapping it, the "Next unread" pill above the composer, the command palette or ⌘⇧U takes you to the next one, longest waiting first. (merge 9c81956f66)
+
 - 2026-11-20: Review workflows get an optional "After the review" box: what the agent should do once it has merged the reviewers' findings (leave it empty to stop at the list). Before starting reviewers, the agent now finds the right base branch and stops if there is nothing to review; when merging, it double-checks findings only one reviewer raised, says which reviewers failed, and lists what it dropped and why. (merge 98a06e7069)
 
 - 2026-11-19: A merged pull request bar now has a Continue button next to Merged: it keeps the same worktree and chat but starts a fresh branch from the latest main, so you can keep going without a new workspace. (merge f90ad426ab)
