@@ -52,12 +52,6 @@ const moodLabels = {
   failed: "Failed",
   unread: "Done, unread",
 } as const;
-/** Solid colours for the count on the companion, matching the sidebar's status dots. */
-const moodBadges = {
-  waiting: "bg-warning text-amber-950",
-  failed: "bg-error text-white",
-  unread: "bg-success text-white",
-} as const;
 const moodDots = { waiting: "bg-warning", failed: "bg-error", unread: "bg-success" } as const;
 const positionSchema = Schema.Struct({ x: Schema.Number, y: Schema.Number });
 const size = 76;
@@ -68,8 +62,10 @@ const maxMinis = 4;
 /** How far each small mascot's centre sits from the main one's, tucked behind or opened into a row. */
 const tucked = (index: number) => 16 + index * 9;
 const spread = (index: number) => 51 + index * 44;
-/** Threads you've already read hide while the stack is tucked, and open small and grey at its end. */
+/** Threads you've already read stay grey, and open a little smaller at the end of the row. */
 const seenScale = 0.8;
+/** Where the count pins to the head's outer corner (centre x, top y), measured on the artwork, not the canvas. */
+const badgeCorner = { x: 56, y: 3 };
 const clamp = (fraction: number) => Math.max(0, Math.min(1, fraction));
 /** A small mascot's centre sits this far below the main one's. */
 const miniDrop = miniTop + mini / 2 - size / 2;
@@ -412,10 +408,7 @@ export default function ThreadMascot({
                   left: size / 2 - mini / 2,
                   top: miniTop,
                   translate: `${offsetOf(index)}px 0`,
-                  scale: member.mood === "idle" ? seenScale : 1,
-                  ...(member.mood === "idle" && !open
-                    ? { opacity: 0, pointerEvents: "none" as const }
-                    : {}),
+                  scale: member.mood === "idle" && open ? seenScale : 1,
                   transitionDelay: open ? `${index * 25}ms` : "0ms",
                   zIndex: maxMinis - index,
                 }}
@@ -426,8 +419,11 @@ export default function ThreadMascot({
             {forYou.length > 0 && !open ? (
               <span
                 aria-hidden="true"
-                className={`absolute top-1 z-20 flex h-[18px] min-w-[18px] items-center justify-center rounded-full px-1 text-2xs font-semibold tabular-nums ring-2 ring-background ${moodBadges[forYou[0]!.mood as keyof typeof moodBadges]}`}
-                style={{ [dirX > 0 ? "left" : "right"]: 4 }}
+                className="absolute z-20 flex h-4 min-w-4 -translate-x-1/2 items-center justify-center rounded-full px-1 text-3xs leading-none font-semibold tabular-nums bg-foreground text-background ring-2 ring-background"
+                style={{
+                  left: dirX > 0 ? size - badgeCorner.x : badgeCorner.x,
+                  top: badgeCorner.y,
+                }}
               >
                 {forYou.length}
               </span>
