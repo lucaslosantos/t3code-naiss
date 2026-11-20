@@ -1,11 +1,16 @@
 import { scopedThreadKey, scopeThreadRef } from "@t3tools/client-runtime/environment";
 import { resolveThreadActivityTimestamp } from "@t3tools/client-runtime/state/thread-sort";
 import type { EnvironmentThreadShell } from "@t3tools/client-runtime/state/models";
+import {
+  effectiveSnoozed,
+  type ThreadSnoozeShell,
+} from "@t3tools/client-runtime/state/thread-settled";
 import type { ScopedThreadRef } from "@t3tools/contracts";
 
-import { resolveSidebarRowStatus } from "../../Sidebar.logic";
+import { isLatestRunSettled } from "../../../session-logic";
+import { hasUnseenCompletion, resolveSidebarRowStatus } from "../../Sidebar.logic";
 
-export type MascotMood = "idle" | "working" | "waiting" | "failed";
+export type MascotMood = "idle" | "working" | "waiting" | "failed" | "unread";
 type BusyMood = Exclude<MascotMood, "idle">;
 
 export interface HerdMember {
@@ -36,7 +41,8 @@ type HerdThread = Pick<
   | "lastVisitedAt"
   | "interactionMode"
   | "hasActionableProposedPlan"
->;
+> &
+  ThreadSnoozeShell;
 
 function resolveHerdMood(thread: HerdThread): BusyMood | null {
   switch (resolveSidebarRowStatus(thread)) {
@@ -52,21 +58,40 @@ function resolveHerdMood(thread: HerdThread): BusyMood | null {
       return thread.runtime?.status === "running" ? "working" : null;
     case "failed":
       return "failed";
-    default:
-      return null;
+    case "ready":
+      if (
+        thread.interactionMode === "plan" &&
+        thread.hasActionableProposedPlan &&
+        isLatestRunSettled(thread.latestRun, thread.runtime)
+      )
+        return "waiting";
+      return hasUnseenCompletion(thread) ? "unread" : null;
   }
 }
 
-const moodOrder: Record<MascotMood, number> = { waiting: 0, failed: 1, working: 2, idle: 2 };
+const moodOrder: Record<MascotMood, number> = {
+  waiting: 0,
+  failed: 1,
+  unread: 2,
+  working: 3,
+  idle: 4,
+};
+
+/** Moods that want the user: they peek out of the stack, count on the badge and come up next. */
+export function wantsYou(mood: MascotMood): boolean {
+  return mood === "waiting" || mood === "failed" || mood === "unread";
+}
 
 /**
- * Top-level threads that are busy or were just visited and not settled, most urgent first, then most recently
- * visited, so the thread you leave takes a place in the stack. Subagents and side chats stay with
- * their parent. `visits` holds thread keys, most recent first.
+ * Top-level threads that want you, are working, or were just visited and not settled. Threads that
+ * want you come first, longest waiting first so none goes stale; the rest follow by most recent
+ * visit. Subagents, side chats and snoozed threads stay out. `visits` holds thread keys, most
+ * recent first.
  */
 export function buildMascotHerd(
   threads: ReadonlyArray<HerdThread>,
   visits: ReadonlyArray<string> = [],
+  now: string = new Date().toISOString(),
 ): ReadonlyArray<HerdMember> {
   const visitRank = (key: string) => {
     const index = visits.indexOf(key);
@@ -79,7 +104,8 @@ export function buildMascotHerd(
         thread.settledOverride === "settled" ||
         thread.lineage.sideChat === true ||
         thread.lineage.relationshipToParent === "subagent" ||
-        thread.delegatedFrom != null
+        thread.delegatedFrom != null ||
+        effectiveSnoozed(thread, { now })
       )
         return [];
       const ref = scopeThreadRef(thread.environmentId, thread.id);
@@ -100,10 +126,19 @@ export function buildMascotHerd(
     .toSorted(
       (a, b) =>
         moodOrder[a.mood] - moodOrder[b.mood] ||
-        visitRank(a.key) - visitRank(b.key) ||
-        b.at.localeCompare(a.at),
+        (wantsYou(a.mood)
+          ? a.at.localeCompare(b.at)
+          : visitRank(a.key) - visitRank(b.key) || b.at.localeCompare(a.at)),
     )
     .map(({ at: _at, ...member }) => member);
+}
+
+/** The thread "Next unread" opens: the first one in the herd that wants you, other than the open one. */
+export function nextForYou(
+  herd: ReadonlyArray<HerdMember>,
+  currentKey: string | null,
+): HerdMember | null {
+  return herd.find((member) => member.key !== currentKey && wantsYou(member.mood)) ?? null;
 }
 
 export function sameHerd(left: ReadonlyArray<HerdMember>, right: ReadonlyArray<HerdMember>) {

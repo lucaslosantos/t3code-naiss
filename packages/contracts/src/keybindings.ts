@@ -40,6 +40,8 @@ const THREAD_KEYBINDING_COMMANDS = [
   "thread.editQueuedMessage",
   "thread.previous",
   "thread.next",
+  // Fork-only: the thread that wants you next, as the mascot stack orders them.
+  "thread.nextUnread",
   "thread.copyReference",
   "thread.settle",
   "thread.pin",
