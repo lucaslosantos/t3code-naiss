@@ -346,10 +346,11 @@ export default function ThreadMascot({
   const pill =
     nextUp === null ? null : (
       <div
-        className="chat-scroll-to-bottom pointer-events-none absolute z-30 flex justify-center py-1.5"
+        // The composer's own lane and width, so the pill's edge lines up with the message box.
+        className="chat-composer-lane pointer-events-none absolute inset-x-0 z-30 py-1.5"
         style={{ bottom: pillBottom }}
       >
-        <div className="flex w-full max-w-(--chat-content-max-width) justify-end px-3 sm:px-5">
+        <div className="mx-auto flex w-full max-w-(--chat-content-max-width) justify-end">
           <Tooltip>
             <TooltipTrigger
               render={
