@@ -191,7 +191,7 @@ function MiniMascot({
             type="button"
             aria-label={`${member.title}: ${moodLabels[member.mood]}`}
             onClick={() => onOpen(offset)}
-            className="pointer-events-auto absolute size-14 origin-bottom cursor-pointer rounded-full outline-none transition-[translate,scale,opacity] duration-300 ease-out focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset motion-reduce:transition-none"
+            className="pointer-events-auto absolute size-14 origin-bottom cursor-pointer [-webkit-app-region:no-drag] rounded-full outline-none transition-[translate,scale,opacity] duration-300 ease-out focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset motion-reduce:transition-none"
             style={style}
           />
         }
@@ -357,7 +357,7 @@ export default function ThreadMascot({
                 <Button
                   onPointerDown={(event) => event.preventDefault()}
                   onClick={() => goNext()}
-                  className="pointer-events-auto"
+                  className="pointer-events-auto [-webkit-app-region:no-drag]"
                   size="xs"
                   variant="glass"
                 />
@@ -385,6 +385,7 @@ export default function ThreadMascot({
     <>
       {pill}
       {createPortal(
+        // The desktop title bar drags the window and swallows clicks unless what sits on it opts out.
         <div ref={stage} className="pointer-events-none fixed inset-0 z-30">
           <div
             className="absolute size-[76px]"
@@ -398,7 +399,7 @@ export default function ThreadMascot({
             {open && hovered ? (
               // Bridges the gaps between opened mascots so the stack stays open while crossing them.
               <div
-                className="pointer-events-auto absolute"
+                className="pointer-events-auto absolute [-webkit-app-region:no-drag]"
                 style={{
                   top: miniTop,
                   height: mini,
@@ -452,7 +453,7 @@ export default function ThreadMascot({
               width={152}
               height={152}
               aria-hidden="true"
-              className="pointer-events-auto relative z-10 size-[76px] touch-none cursor-grab select-none active:cursor-grabbing"
+              className="pointer-events-auto relative z-10 size-[76px] touch-none cursor-grab [-webkit-app-region:no-drag] select-none active:cursor-grabbing"
               onPointerDown={(event) => {
                 if (!event.isPrimary || event.button !== 0) return;
                 event.preventDefault();
