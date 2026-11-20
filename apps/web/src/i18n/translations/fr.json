@@ -12302,6 +12302,8 @@
   "5e8f90b032ab53a2": "Chaque modèle ci-dessous reçoit ce prompt et s’exécute en même temps. Les flux appartiennent à ce projet.",
   "3c6e7b02cb4c62de": "Prompt",
   "20209151175fda0f": "Indiquez ici la compétence ou les règles de revue de votre dépôt, par exemple « Utilise la compétence de revue et commente la pull request ».",
+  "f63ac56479354393": "Après la revue",
+  "bb774e2c9fde5aeb": "S’exécute une fois, par l’agent qui a lancé les relecteurs, après avoir fusionné leurs résultats. Laissez vide pour s’arrêter à la liste fusionnée.",
   "6af3b30604820829": "Modèles",
   "d76f635ed9a84ba4": "Ajouter un modèle",
   "553055ec2bc33dad": "Flux par défaut",

@@ -12302,6 +12302,8 @@
   "5e8f90b032ab53a2": "Jedes Modell unten bekommt diesen Prompt und läuft gleichzeitig. Abläufe gehören zu diesem Projekt.",
   "3c6e7b02cb4c62de": "Prompt",
   "20209151175fda0f": "Nenne hier den Review-Skill oder die Regeln deines Repos, z. B. \"Nutze den Review-Skill und kommentiere den Pull Request\".",
+  "f63ac56479354393": "Nach dem Review",
+  "bb774e2c9fde5aeb": "Läuft einmal, durch den Agenten, der die Reviewer gestartet hat, nachdem er ihre Ergebnisse zusammengeführt hat. Leer lassen, um bei der zusammengeführten Liste aufzuhören.",
   "6af3b30604820829": "Modelle",
   "d76f635ed9a84ba4": "Modell hinzufügen",
   "553055ec2bc33dad": "Standard-Ablauf",

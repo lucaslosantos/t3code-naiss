@@ -1,7 +1,7 @@
 // Fork-only: review workflows launched from the thread details card. Each project keeps its own
 // list; a workflow is a prompt that every chosen model runs in parallel.
 import { ProviderInstanceId, type EnvironmentId, type ProjectId } from "@t3tools/contracts";
-import { Schema } from "effect";
+import { Effect, Schema } from "effect";
 
 const Reviewer = Schema.Struct({ instanceId: ProviderInstanceId, model: Schema.String });
 export type Reviewer = typeof Reviewer.Type;
@@ -10,6 +10,8 @@ const ReviewWorkflow = Schema.Struct({
   id: Schema.String,
   name: Schema.String,
   prompt: Schema.String,
+  /** Runs once, by the orchestrating agent, after it merges the findings. Empty stops there. */
+  afterReview: Schema.String.pipe(Schema.withDecodingDefaultKey(Effect.succeed(""))),
   reviewers: Schema.Array(Reviewer),
 });
 export type ReviewWorkflow = typeof ReviewWorkflow.Type;
@@ -84,17 +86,25 @@ export function buildReviewPrompt(workflow: ReviewWorkflow): string {
     (reviewer, index) =>
       `${index + 1}. target { providerInstanceId: "${reviewer.instanceId}", model: "${reviewer.model}" }, title "${workflow.name} ${index + 1}"`,
   );
+  const afterReview = workflow.afterReview.trim();
   return [
     `Run the "${workflow.name}" review with ${count} reviewer${count === 1 ? "" : "s"} in parallel.`,
     "",
-    'Start every reviewer now, in this turn, with one `delegate_task` call each (role "review", isolation "shared", mode "async"):',
+    "First find the base: the pull request's base branch if there is a pull request (for a stacked pull request, that is the layer below, not main), otherwise the default branch. If `git diff $(git merge-base <base> HEAD)...HEAD` is empty, stop and tell me instead of starting reviewers.",
+    "",
+    'Then start every reviewer, in this turn, with one `delegate_task` call each (role "review", isolation "shared", mode "async"):',
     ...targets,
     "",
-    "Give each reviewer this task, adding this checkout's path, the base branch, and the pull request link if there is one:",
+    "Give each reviewer this task, adding this checkout's path, the base you found, and the pull request link if there is one:",
     "<task>",
     workflow.prompt.trim(),
     "</task>",
     "",
-    "Do not do the task yourself while they run. When all reviewers have reported, merge their findings into one list: drop duplicates and false positives, rank by severity, and note which reviewers raised each. Do not change code until I ask.",
+    [
+      "Do not review the code yourself while they run. When all reviewers have reported (or failed: say which, and do not replace them), merge their findings. Drop duplicates. Check every finding raised by only one reviewer, or disputed, by reading the code. Rank by severity, note which reviewers raised each, and list the dropped findings with the reason for each.",
+      afterReview === ""
+        ? "Do not change code until I ask."
+        : `When the merged list is ready: ${afterReview}`,
+    ].join(" "),
   ].join("\n");
 }

@@ -12301,6 +12301,8 @@
   "5e8f90b032ab53a2": "Cada modelo abaixo recebe este prompt e roda ao mesmo tempo. Os fluxos pertencem a este projeto.",
   "3c6e7b02cb4c62de": "Prompt",
   "20209151175fda0f": "Indique aqui a skill ou as regras de revisão do seu repositório, por exemplo \"Use a skill de revisão e comente no pull request\".",
+  "f63ac56479354393": "Depois da revisão",
+  "bb774e2c9fde5aeb": "Executa uma vez, pelo agente que iniciou os revisores, depois de juntar as descobertas deles. Deixe vazio para parar na lista combinada.",
   "6af3b30604820829": "Modelos",
   "d76f635ed9a84ba4": "Adicionar modelo",
   "553055ec2bc33dad": "Fluxo padrão",

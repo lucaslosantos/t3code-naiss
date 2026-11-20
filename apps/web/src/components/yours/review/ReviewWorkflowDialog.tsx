@@ -83,6 +83,7 @@ function ReviewWorkflowForm({
   const entries = providerInstanceEntriesFor(providers, settings, projectId);
   const [name, setName] = useState(request.workflow.name);
   const [prompt, setPrompt] = useState(request.workflow.prompt);
+  const [afterReview, setAfterReview] = useState(request.workflow.afterReview);
   const [reviewers, setReviewers] = useState(request.workflow.reviewers);
   const [isDefault, setIsDefault] = useState(request.isDefault || request.isOnly);
   const [error, setError] = useState<string | null>(null);
@@ -97,7 +98,10 @@ function ReviewWorkflowForm({
       setError(gt("Prompt is required."));
       return;
     }
-    onSave({ id: request.workflow.id, name: name.trim(), prompt, reviewers }, isDefault);
+    onSave(
+      { id: request.workflow.id, name: name.trim(), prompt, afterReview, reviewers },
+      isDefault,
+    );
     onClose();
   };
 
@@ -141,6 +145,23 @@ function ReviewWorkflowForm({
               <T>
                 Name your repo's own review skill or rules here, such as "Use the review skill and
                 comment on the pull request".
+              </T>
+            </p>
+          </div>
+          <div className="space-y-1.5">
+            <Label htmlFor={`${formId}-after-review`}>
+              <T>After the review</T>
+            </Label>
+            <Textarea
+              id={`${formId}-after-review`}
+              rows={3}
+              value={afterReview}
+              onChange={(event) => setAfterReview(event.target.value)}
+            />
+            <p className="text-xs text-muted-foreground">
+              <T>
+                Runs once, by the agent that started the reviewers, after it merges their findings.
+                Leave empty to stop at the merged list.
               </T>
             </p>
           </div>

@@ -12309,6 +12309,8 @@
   "5e8f90b032ab53a2": "Varje modell nedan får den här prompten och körs samtidigt. Flöden hör till det här projektet.",
   "3c6e7b02cb4c62de": "Prompt",
   "20209151175fda0f": "Ange repots egen granskningsskill eller regler här, till exempel \"Använd granskningsskillen och kommentera pull requesten\".",
+  "f63ac56479354393": "Efter granskningen",
+  "bb774e2c9fde5aeb": "Körs en gång, av agenten som startade granskarna, efter att den har slagit ihop deras fynd. Lämna tomt för att stanna vid den sammanslagna listan.",
   "6af3b30604820829": "Modeller",
   "d76f635ed9a84ba4": "Lägg till modell",
   "553055ec2bc33dad": "Standardflöde",
