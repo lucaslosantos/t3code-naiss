@@ -117,6 +117,7 @@ function ProjectReviewRow({
     id: STANDARD_WORKFLOW_ID,
     name: gt("Standard", { $context: "name of the built-in review workflow" }),
     prompt: STANDARD_REVIEW_PROMPT,
+    afterReview: "",
     reviewers: [threadModel],
   });
 
@@ -308,6 +309,7 @@ function ProjectReviewRow({
                     id: randomUUID(),
                     name: "",
                     prompt: primary.prompt,
+                    afterReview: "",
                     reviewers: [threadModel],
                   },
                   true,

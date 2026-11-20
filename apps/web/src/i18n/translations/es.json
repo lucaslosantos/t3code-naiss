@@ -12297,6 +12297,8 @@
   "5e8f90b032ab53a2": "Cada modelo de abajo recibe este prompt y se ejecuta a la vez. Los flujos pertenecen a este proyecto.",
   "3c6e7b02cb4c62de": "Prompt",
   "20209151175fda0f": "Indica aquí la skill o las reglas de revisión de tu repo, por ejemplo \"Usa la skill de revisión y comenta en el pull request\".",
+  "f63ac56479354393": "Después de la revisión",
+  "bb774e2c9fde5aeb": "Se ejecuta una vez, a cargo del agente que inició a los revisores, después de combinar sus hallazgos. Déjalo vacío para detenerte en la lista combinada.",
   "6af3b30604820829": "Modelos",
   "d76f635ed9a84ba4": "Añadir modelo",
   "553055ec2bc33dad": "Flujo predeterminado",

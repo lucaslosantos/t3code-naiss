@@ -12311,6 +12311,8 @@
   "5e8f90b032ab53a2": "Each model below gets this prompt and runs at the same time. Workflows belong to this project.",
   "3c6e7b02cb4c62de": "Prompt",
   "20209151175fda0f": "Name your repo's own review skill or rules here, such as \"Use the review skill and comment on the pull request\".",
+  "f63ac56479354393": "After the review",
+  "bb774e2c9fde5aeb": "Runs once, by the agent that started the reviewers, after it merges their findings. Leave empty to stop at the merged list.",
   "6af3b30604820829": "Models",
   "d76f635ed9a84ba4": "Add model",
   "553055ec2bc33dad": "Default workflow",
