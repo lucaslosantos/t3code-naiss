@@ -52,6 +52,12 @@ const moodLabels = {
   failed: "Failed",
   unread: "Done, unread",
 } as const;
+/** Solid colours for the count on the companion, matching the sidebar's status dots. */
+const moodBadges = {
+  waiting: "bg-warning text-amber-950",
+  failed: "bg-error text-white",
+  unread: "bg-success text-white",
+} as const;
 const moodDots = { waiting: "bg-warning", failed: "bg-error", unread: "bg-success" } as const;
 const positionSchema = Schema.Struct({ x: Schema.Number, y: Schema.Number });
 const size = 76;
@@ -419,7 +425,7 @@ export default function ThreadMascot({
             {forYou.length > 0 && !open ? (
               <span
                 aria-hidden="true"
-                className="absolute z-20 flex h-4 min-w-4 -translate-x-1/2 items-center justify-center rounded-full px-1 text-3xs leading-none font-semibold tabular-nums bg-foreground text-background ring-2 ring-background"
+                className={`absolute z-20 flex h-4 min-w-4 -translate-x-1/2 items-center justify-center rounded-full px-1 text-3xs leading-none font-semibold tabular-nums ring-2 ring-background ${moodBadges[forYou[0]!.mood as keyof typeof moodBadges]}`}
                 style={{
                   left: dirX > 0 ? size - badgeCorner.x : badgeCorner.x,
                   top: badgeCorner.y,
