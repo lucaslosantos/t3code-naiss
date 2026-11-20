@@ -33,3 +33,19 @@ const herdAtom = Atom.make((get) => {
 export function useMascotHerd(): ReadonlyArray<HerdMember> {
   return useAtomValue(herdAtom);
 }
+
+const nextUnreadRequests = new EventTarget();
+
+/** Asks the mounted companion to fly to the next thread that wants you; false when none is listening. */
+export function requestNextUnread(): boolean {
+  return !nextUnreadRequests.dispatchEvent(new Event("next", { cancelable: true }));
+}
+
+export function onNextUnreadRequest(handle: () => void) {
+  const listener = (event: Event) => {
+    event.preventDefault();
+    handle();
+  };
+  nextUnreadRequests.addEventListener("next", listener);
+  return () => nextUnreadRequests.removeEventListener("next", listener);
+}

@@ -3551,6 +3551,7 @@ export default function ChatView(props: ChatViewProps) {
                 <Suspense fallback={null}>
                   <ThreadMascot
                     threadKey={activeThreadKey ?? routeThreadKey}
+                    pillBottom={scrollToEndClearance + 4}
                     mood={
                       activePendingApproval || activePendingUserInput
                         ? "waiting"

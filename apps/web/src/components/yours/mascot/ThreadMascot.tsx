@@ -1,7 +1,9 @@
 import { Rive, RuntimeLoader } from "@rive-app/canvas";
 import wasmUrl from "@rive-app/canvas/rive.wasm?url";
 import fallbackUrl from "@rive-app/canvas/rive_fallback.wasm?url";
+import { useAtomValue } from "@effect/atom-react";
 import { useNavigate } from "@tanstack/react-router";
+import { T } from "gt-react";
 import { createPortal } from "react-dom";
 import * as Schema from "effect/Schema";
 import {
@@ -13,11 +15,17 @@ import {
   type RefObject,
 } from "react";
 
+import { isCommandPaletteOpen } from "../../../commandPaletteBus";
 import { useLocalStorage } from "../../../hooks/useLocalStorage";
+import { resolveShortcutCommand, shortcutLabelForCommand } from "../../../keybindings";
+import { primaryServerKeybindingsAtom } from "../../../state/server";
 import { buildThreadRouteParams } from "../../../threadRoutes";
+import { threadShortcutContext } from "../../Sidebar.logic";
+import { Button } from "../../ui/button";
+import { Kbd } from "../../ui/kbd";
 import { Tooltip, TooltipPopup, TooltipTrigger } from "../../ui/tooltip";
-import type { HerdMember, MascotMood } from "./mascotHerd.logic";
-import { recordMascotVisit, useMascotHerd } from "./mascotHerd.state";
+import { nextForYou, wantsYou, type HerdMember, type MascotMood } from "./mascotHerd.logic";
+import { onNextUnreadRequest, recordMascotVisit, useMascotHerd } from "./mascotHerd.state";
 
 const companionUrl = Object.values(
   import.meta.glob<string>("./companion.riv", {
@@ -35,13 +43,22 @@ const moods = {
   working: ["water", "flap"],
   waiting: ["spark", "perk"],
   failed: ["fire", "droop"],
+  unread: ["naiss", "perk"],
 } as const;
 const moodLabels = {
-  idle: "Recent",
+  idle: "Seen",
   working: "Working",
   waiting: "Needs you",
   failed: "Failed",
+  unread: "Done, unread",
 } as const;
+/** Solid colours for the count on the companion, matching the sidebar's status dots. */
+const moodBadges = {
+  waiting: "bg-warning text-amber-950",
+  failed: "bg-error text-white",
+  unread: "bg-success text-white",
+} as const;
+const moodDots = { waiting: "bg-warning", failed: "bg-error", unread: "bg-success" } as const;
 const positionSchema = Schema.Struct({ x: Schema.Number, y: Schema.Number });
 const size = 76;
 const mini = 56;
@@ -51,6 +68,10 @@ const maxMinis = 4;
 /** How far each small mascot's centre sits from the main one's, tucked behind or opened into a row. */
 const tucked = (index: number) => 16 + index * 9;
 const spread = (index: number) => 51 + index * 44;
+/** How far a tucked mascot that wants you peeks out from behind the others. */
+const peek = { x: 10, y: -8 };
+/** Threads you've already read shrink and fade at the back of the stack. */
+const seenScale = 0.8;
 const clamp = (fraction: number) => Math.max(0, Math.min(1, fraction));
 /** A small mascot's centre sits this far below the main one's. */
 const miniDrop = miniTop + mini / 2 - size / 2;
@@ -170,12 +191,18 @@ function MiniMascot({
             type="button"
             aria-label={`${member.title}: ${moodLabels[member.mood]}`}
             onClick={() => onOpen(offset)}
-            className="pointer-events-auto absolute size-14 cursor-pointer rounded-full outline-none transition-[translate] duration-300 ease-out focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset motion-reduce:transition-none"
+            className="pointer-events-auto absolute size-14 origin-bottom cursor-pointer rounded-full outline-none transition-[translate,scale] duration-300 ease-out focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset motion-reduce:transition-none"
             style={style}
           />
         }
       >
-        <canvas ref={canvas} width={112} height={112} aria-hidden="true" className="size-14" />
+        <canvas
+          ref={canvas}
+          width={112}
+          height={112}
+          aria-hidden="true"
+          className={member.mood === "idle" ? "size-14 opacity-60 grayscale" : "size-14"}
+        />
       </TooltipTrigger>
       <TooltipPopup side="top">
         <span className="font-medium">{member.title}</span>
@@ -185,7 +212,16 @@ function MiniMascot({
   );
 }
 
-export default function ThreadMascot({ mood, threadKey }: { mood: MascotMood; threadKey: string }) {
+export default function ThreadMascot({
+  mood,
+  threadKey,
+  pillBottom,
+}: {
+  mood: MascotMood;
+  threadKey: string;
+  /** Where the "Next unread" pill sits above the composer, in pixels from the bottom. */
+  pillBottom: number;
+}) {
   const canvas = useRef<HTMLCanvasElement>(null);
   const stage = useRef<HTMLDivElement>(null);
   const playReaction = useCompanion(canvas, mood, false);
@@ -214,6 +250,10 @@ export default function ThreadMascot({ mood, threadKey }: { mood: MascotMood; th
     return () => landing?.cancel();
   }, [threadKey]);
   const herd = useMascotHerd().filter((member) => member.key !== threadKey);
+  const nextUp = nextForYou(herd, threadKey);
+  const forYou = herd.filter((member) => wantsYou(member.mood));
+  const keybindings = useAtomValue(primaryServerKeybindingsAtom);
+  const nextShortcut = shortcutLabelForCommand(keybindings, "thread.nextUnread");
   const [position, savePosition] = useLocalStorage(
     "t3code:luko:mascot-position",
     { x: 0.98, y: 0.14 },
@@ -235,10 +275,7 @@ export default function ThreadMascot({ mood, threadKey }: { mood: MascotMood; th
   const [calling, setCalling] = useState(false);
   const closeTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
   const open = moving === null && (hovered || calling) && shown.length > 0;
-  const urgent = herd
-    .filter((member) => member.mood === "waiting" || member.mood === "failed")
-    .map((member) => member.key)
-    .join(" ");
+  const urgent = forYou.map((member) => member.key).join(" ");
   const seenUrgent = useRef(urgent);
   const callTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
   const noticeUrgent = useEffectEvent((next: string) => {
@@ -261,6 +298,45 @@ export default function ThreadMascot({ mood, threadKey }: { mood: MascotMood; th
     },
     [],
   );
+  const offsetOf = (member: HerdMember, index: number) =>
+    dirX * (open ? spread(index) : tucked(index) + (wantsYou(member.mood) ? peek.x : 0));
+  const openMember = (member: HerdMember, offset: number) => {
+    flight = { from: threadKey, to: member.key, offset, at: Date.now() };
+    // Folding the stack lets the thread you left settle behind the companion.
+    clearTimeout(closeTimer.current);
+    setHovered(false);
+    setCalling(false);
+    void navigate({
+      to: "/$environmentId/$threadId",
+      params: buildThreadRouteParams(member.ref),
+    });
+  };
+  const goNext = () => {
+    if (!nextUp) return false;
+    const index = shown.indexOf(nextUp);
+    openMember(nextUp, index === -1 ? dirX * tucked(0) : offsetOf(nextUp, index));
+    return true;
+  };
+  const goNextLater = useEffectEvent(goNext);
+  // oxlint-disable-next-line t3code/no-unreasoned-state-sync -- the next-unread shortcut and palette action reach the mounted companion
+  useEffect(() => {
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.defaultPrevented || event.repeat || isCommandPaletteOpen()) return;
+      const command = resolveShortcutCommand(event, keybindings, {
+        platform: navigator.platform,
+        context: threadShortcutContext(null),
+      });
+      if (command !== "thread.nextUnread") return;
+      event.preventDefault();
+      goNextLater();
+    };
+    window.addEventListener("keydown", onKeyDown);
+    const stopRequests = onNextUnreadRequest(() => goNextLater());
+    return () => {
+      window.removeEventListener("keydown", onKeyDown);
+      stopRequests();
+    };
+  }, [keybindings]);
   const hover = (next: boolean) => {
     clearTimeout(closeTimer.current);
     if (next) setHovered(true);
@@ -268,121 +344,166 @@ export default function ThreadMascot({ mood, threadKey }: { mood: MascotMood; th
   };
 
   if (!companionUrl) return null;
-  return createPortal(
-    <div ref={stage} className="pointer-events-none fixed inset-0 z-30">
+  const pill =
+    nextUp === null ? null : (
       <div
-        className="absolute size-[76px]"
-        onPointerEnter={() => hover(true)}
-        onPointerLeave={() => hover(false)}
-        style={{
-          left: `calc(${100 * clamp(x)}% - ${size * clamp(x)}px)`,
-          top: `calc(${100 * clamp(y)}% - ${size * clamp(y)}px)`,
-        }}
+        className="chat-scroll-to-bottom pointer-events-none absolute z-30 flex justify-center py-1.5"
+        style={{ bottom: pillBottom }}
       >
-        {open && hovered ? (
-          // Bridges the gaps between opened mascots so the stack stays open while crossing them.
+        <div className="flex w-full max-w-(--chat-content-max-width) justify-end px-3 sm:px-5">
+          <Tooltip>
+            <TooltipTrigger
+              render={
+                <Button
+                  onPointerDown={(event) => event.preventDefault()}
+                  onClick={() => goNext()}
+                  className="pointer-events-auto"
+                  size="xs"
+                  variant="glass"
+                />
+              }
+            >
+              <span
+                aria-hidden="true"
+                className={`size-1.5 shrink-0 rounded-full ${moodDots[nextUp.mood as keyof typeof moodDots]}`}
+              />
+              <T>Next unread</T>
+              {forYou.length > 1 ? (
+                <span className="text-muted-foreground tabular-nums">{forYou.length}</span>
+              ) : null}
+              {nextShortcut ? <Kbd className="max-sm:hidden">{nextShortcut}</Kbd> : null}
+            </TooltipTrigger>
+            <TooltipPopup side="top">
+              <span className="font-medium">{nextUp.title}</span>
+              <span className="text-muted-foreground"> · {moodLabels[nextUp.mood]}</span>
+            </TooltipPopup>
+          </Tooltip>
+        </div>
+      </div>
+    );
+  return (
+    <>
+      {pill}
+      {createPortal(
+        <div ref={stage} className="pointer-events-none fixed inset-0 z-30">
           <div
-            className="pointer-events-auto absolute"
+            className="absolute size-[76px]"
+            onPointerEnter={() => hover(true)}
+            onPointerLeave={() => hover(false)}
             style={{
-              top: miniTop,
-              height: mini,
-              left: dirX > 0 ? size / 2 : size / 2 - spread(shown.length),
-              width: spread(shown.length),
-            }}
-          />
-        ) : null}
-        {shown.map((member, index) => (
-          <MiniMascot
-            key={member.key}
-            member={member}
-            style={{
-              left: size / 2 - mini / 2,
-              top: miniTop,
-              translate: `${dirX * (open ? spread(index) : tucked(index))}px 0`,
-              transitionDelay: open ? `${index * 25}ms` : "0ms",
-              zIndex: maxMinis - index,
-            }}
-            offset={dirX * (open ? spread(index) : tucked(index))}
-            onOpen={(offset) => {
-              flight = { from: threadKey, to: member.key, offset, at: Date.now() };
-              // Folding the stack lets the thread you left settle behind the companion.
-              clearTimeout(closeTimer.current);
-              setHovered(false);
-              setCalling(false);
-              void navigate({
-                to: "/$environmentId/$threadId",
-                params: buildThreadRouteParams(member.ref),
-              });
-            }}
-          />
-        ))}
-        {overflow > 0 ? (
-          <span
-            className="absolute flex h-5 min-w-7 -translate-x-1/2 items-center justify-center rounded-full border border-border bg-popover px-1.5 text-2xs font-medium text-muted-foreground shadow-xs transition-opacity duration-300 motion-reduce:transition-none"
-            style={{
-              left: size / 2 + dirX * (spread(shown.length) - 12),
-              top: miniTop + mini - 26,
-              opacity: open ? 1 : 0,
+              left: `calc(${100 * clamp(x)}% - ${size * clamp(x)}px)`,
+              top: `calc(${100 * clamp(y)}% - ${size * clamp(y)}px)`,
             }}
           >
-            +{overflow}
-          </span>
-        ) : null}
-        <canvas
-          ref={canvas}
-          width={152}
-          height={152}
-          aria-hidden="true"
-          className="pointer-events-auto relative z-10 size-[76px] touch-none cursor-grab select-none active:cursor-grabbing"
-          onPointerDown={(event) => {
-            if (!event.isPrimary || event.button !== 0) return;
-            event.preventDefault();
-            const box = event.currentTarget.getBoundingClientRect();
-            drag.current = {
-              dx: event.clientX - box.left,
-              dy: event.clientY - box.top,
-              startX: event.clientX,
-              startY: event.clientY,
-              moved: false,
-            };
-            event.currentTarget.setPointerCapture(event.pointerId);
-          }}
-          onPointerMove={(event) => {
-            if (!drag.current || !event.currentTarget.hasPointerCapture(event.pointerId)) return;
-            const box = stage.current?.getBoundingClientRect();
-            if (!box) return;
-            if (!drag.current.moved) {
-              if (
-                Math.hypot(
-                  event.clientX - drag.current.startX,
-                  event.clientY - drag.current.startY,
-                ) < 5
-              )
-                return;
-              drag.current.moved = true;
-              playReaction("flap");
-            }
-            setMoving({
-              x: clamp(
-                (event.clientX - box.left - drag.current.dx) / Math.max(1, box.width - size),
-              ),
-              y: clamp(
-                (event.clientY - box.top - drag.current.dy) / Math.max(1, box.height - size),
-              ),
-            });
-          }}
-          onPointerUp={(event) => {
-            if (!drag.current || !event.currentTarget.hasPointerCapture(event.pointerId)) return;
-            playReaction(drag.current.moved ? "perk" : "boop");
-            if (moving) savePosition(moving);
-          }}
-          onLostPointerCapture={() => {
-            drag.current = null;
-            setMoving(null);
-          }}
-        />
-      </div>
-    </div>,
-    document.body,
+            {open && hovered ? (
+              // Bridges the gaps between opened mascots so the stack stays open while crossing them.
+              <div
+                className="pointer-events-auto absolute"
+                style={{
+                  top: miniTop,
+                  height: mini,
+                  left: dirX > 0 ? size / 2 : size / 2 - spread(shown.length),
+                  width: spread(shown.length),
+                }}
+              />
+            ) : null}
+            {shown.map((member, index) => (
+              <MiniMascot
+                key={member.key}
+                member={member}
+                style={{
+                  left: size / 2 - mini / 2,
+                  top: miniTop,
+                  translate: `${offsetOf(member, index)}px ${!open && wantsYou(member.mood) ? peek.y : 0}px`,
+                  scale: member.mood === "idle" ? seenScale : 1,
+                  transitionDelay: open ? `${index * 25}ms` : "0ms",
+                  zIndex: maxMinis - index,
+                }}
+                offset={offsetOf(member, index)}
+                onOpen={(offset) => openMember(member, offset)}
+              />
+            ))}
+            {forYou.length > 0 && !open ? (
+              <span
+                aria-hidden="true"
+                className={`absolute top-1 z-20 flex h-[18px] min-w-[18px] items-center justify-center rounded-full px-1 text-2xs font-semibold tabular-nums ring-2 ring-background ${moodBadges[forYou[0]!.mood as keyof typeof moodBadges]}`}
+                style={{ [dirX > 0 ? "right" : "left"]: 6 }}
+              >
+                {forYou.length}
+              </span>
+            ) : null}
+            {overflow > 0 ? (
+              <span
+                className="absolute flex h-5 min-w-7 -translate-x-1/2 items-center justify-center rounded-full border border-border bg-popover px-1.5 text-2xs font-medium text-muted-foreground shadow-xs transition-opacity duration-300 motion-reduce:transition-none"
+                style={{
+                  left: size / 2 + dirX * (spread(shown.length) - 12),
+                  top: miniTop + mini - 26,
+                  opacity: open ? 1 : 0,
+                }}
+              >
+                +{overflow}
+              </span>
+            ) : null}
+            <canvas
+              ref={canvas}
+              width={152}
+              height={152}
+              aria-hidden="true"
+              className="pointer-events-auto relative z-10 size-[76px] touch-none cursor-grab select-none active:cursor-grabbing"
+              onPointerDown={(event) => {
+                if (!event.isPrimary || event.button !== 0) return;
+                event.preventDefault();
+                const box = event.currentTarget.getBoundingClientRect();
+                drag.current = {
+                  dx: event.clientX - box.left,
+                  dy: event.clientY - box.top,
+                  startX: event.clientX,
+                  startY: event.clientY,
+                  moved: false,
+                };
+                event.currentTarget.setPointerCapture(event.pointerId);
+              }}
+              onPointerMove={(event) => {
+                if (!drag.current || !event.currentTarget.hasPointerCapture(event.pointerId))
+                  return;
+                const box = stage.current?.getBoundingClientRect();
+                if (!box) return;
+                if (!drag.current.moved) {
+                  if (
+                    Math.hypot(
+                      event.clientX - drag.current.startX,
+                      event.clientY - drag.current.startY,
+                    ) < 5
+                  )
+                    return;
+                  drag.current.moved = true;
+                  playReaction("flap");
+                }
+                setMoving({
+                  x: clamp(
+                    (event.clientX - box.left - drag.current.dx) / Math.max(1, box.width - size),
+                  ),
+                  y: clamp(
+                    (event.clientY - box.top - drag.current.dy) / Math.max(1, box.height - size),
+                  ),
+                });
+              }}
+              onPointerUp={(event) => {
+                if (!drag.current || !event.currentTarget.hasPointerCapture(event.pointerId))
+                  return;
+                if (!drag.current.moved && goNext()) return;
+                playReaction(drag.current.moved ? "perk" : "boop");
+                if (moving) savePosition(moving);
+              }}
+              onLostPointerCapture={() => {
+                drag.current = null;
+                setMoving(null);
+              }}
+            />
+          </div>
+        </div>,
+        document.body,
+      )}
+    </>
   );
 }

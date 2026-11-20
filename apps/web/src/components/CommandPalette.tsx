@@ -255,6 +255,7 @@ import {
 } from "./CommandPaletteAddProject";
 import { useCommandPaletteThreadItems } from "./CommandPaletteThreadItems";
 import { useCommandPaletteThemeItems } from "./CommandPaletteThemeItems";
+import { useNextUnreadPaletteItems } from "./yours/mascot/useNextUnreadPaletteItems";
 import { useTerminalPlacementPaletteItems } from "./yours/useTerminalPlacementPaletteItems";
 import {
   PORT_FORWARD_GROUP_PREFIX,
@@ -553,6 +554,7 @@ function OpenCommandPaletteDialog(props: {
   const providersByEnvironment = useEnvironmentProviders();
   const { changeThemeItem, changeAppearanceItem, themeEditorItem } = useCommandPaletteThemeItems();
   const terminalPlacementItems = useTerminalPlacementPaletteItems();
+  const nextUnreadItems = useNextUnreadPaletteItems();
   const portForwardItem = useCommandPalettePortForwardItem({
     activeThread: activeThread ?? null,
     query: deferredQuery,
@@ -1677,7 +1679,7 @@ function OpenCommandPaletteDialog(props: {
   actionItems.push(changeAppearanceItem);
 
   actionItems.push(themeEditorItem);
-  actionItems.push(...terminalPlacementItems);
+  actionItems.push(...terminalPlacementItems, ...nextUnreadItems);
 
   if (environments.some((environment) => environment.serverConfig !== null)) {
     actionItems.push({
