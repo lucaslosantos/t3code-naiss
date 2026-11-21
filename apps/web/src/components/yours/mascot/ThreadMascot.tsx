@@ -472,6 +472,11 @@ export default function ThreadMascot({
               onPointerMove={(event) => {
                 if (!drag.current || !event.currentTarget.hasPointerCapture(event.pointerId))
                   return;
+                // The desktop title bar can swallow the release, so a move with no button held is the drop.
+                if (event.buttons === 0) {
+                  event.currentTarget.releasePointerCapture(event.pointerId);
+                  return;
+                }
                 const box = stage.current?.getBoundingClientRect();
                 if (!box) return;
                 if (!drag.current.moved) {
@@ -498,12 +503,15 @@ export default function ThreadMascot({
               onPointerUp={(event) => {
                 if (!drag.current || !event.currentTarget.hasPointerCapture(event.pointerId))
                   return;
-                if (!drag.current.moved && goNext()) return;
-                playReaction(drag.current.moved ? "perk" : "boop");
-                // A quick drop can land before the last move renders, so save where the pointer is.
-                if (drag.current.at) savePosition(drag.current.at);
+                if (drag.current.moved || goNext()) return;
+                playReaction("boop");
               }}
               onLostPointerCapture={() => {
+                // Every way a drag ends lands here; save the pointer's spot, not the last render's.
+                if (drag.current?.at) {
+                  savePosition(drag.current.at);
+                  playReaction("perk");
+                }
                 drag.current = null;
                 setMoving(null);
               }}
