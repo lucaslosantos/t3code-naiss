@@ -55,6 +55,15 @@ const moodBadges = {
   unread: "bg-success text-white",
 } as const;
 const moodDots = { waiting: "bg-warning", failed: "bg-error", unread: "bg-success" } as const;
+/** The soft plate behind the small mascot under the pointer takes its thread's colour. */
+const moodGlows = {
+  idle: "text-muted-foreground",
+  working: "text-info",
+  waiting: "text-warning",
+  failed: "text-error",
+  unread: "text-success",
+} as const;
+const glowSize = 50;
 const positionSchema = Schema.Struct({ x: Schema.Number, y: Schema.Number });
 const size = 76;
 const mini = 56;
@@ -154,11 +163,13 @@ function MiniMascot({
   offset,
   style,
   onOpen,
+  onHover,
 }: {
   member: HerdMember;
   offset: number;
   style: React.CSSProperties;
   onOpen: (offset: number) => void;
+  onHover: (hovered: boolean) => void;
 }) {
   const canvas = useRef<HTMLCanvasElement>(null);
   const button = useRef<HTMLButtonElement>(null);
@@ -187,6 +198,8 @@ function MiniMascot({
             type="button"
             aria-label={`${member.title}: ${moodLabels[member.mood]}`}
             onClick={() => onOpen(offset)}
+            onPointerEnter={() => onHover(true)}
+            onPointerLeave={() => onHover(false)}
             className="pointer-events-auto absolute size-14 origin-bottom cursor-pointer [-webkit-app-region:no-drag] rounded-full outline-none transition-[translate,scale,opacity] duration-300 ease-out focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset motion-reduce:transition-none"
             style={style}
           />
@@ -271,6 +284,14 @@ export default function ThreadMascot({
   const [hovered, setHovered] = useState(false);
   const [calling, setCalling] = useState(false);
   const closeTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
+  const [glow, setGlow] = useState({ index: 0, on: false, slide: false });
+  const glowTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
+  const glowOn = (index: number | null) => {
+    clearTimeout(glowTimer.current);
+    if (index !== null) setGlow((before) => ({ index, on: true, slide: before.on }));
+    // Crossing from one mascot to the next leaves before it enters; the wait keeps the plate lit so it slides.
+    else glowTimer.current = setTimeout(() => setGlow((before) => ({ ...before, on: false })), 90);
+  };
   const open = moving === null && (hovered || calling) && shown.length > 0;
   const urgent = forYou.map((member) => member.key).join(" ");
   const seenUrgent = useRef(urgent);
@@ -292,6 +313,7 @@ export default function ThreadMascot({
     () => () => {
       clearTimeout(callTimer.current);
       clearTimeout(closeTimer.current);
+      clearTimeout(glowTimer.current);
     },
     [],
   );
@@ -302,6 +324,7 @@ export default function ThreadMascot({
     clearTimeout(closeTimer.current);
     setHovered(false);
     setCalling(false);
+    glowOn(null);
     void navigate({
       to: "/$environmentId/$threadId",
       params: buildThreadRouteParams(member.ref),
@@ -339,6 +362,7 @@ export default function ThreadMascot({
     else closeTimer.current = setTimeout(() => setHovered(false), 250);
   };
 
+  const glowMember = shown[glow.index];
   if (!companionUrl) return null;
   const pill =
     nextUp === null ? null : (
@@ -407,6 +431,22 @@ export default function ThreadMascot({
                 }}
               />
             ) : null}
+            {glowMember ? (
+              <span
+                aria-hidden="true"
+                className={`pointer-events-none absolute origin-bottom rounded-2xl border border-current/15 bg-current/8 duration-200 ease-out motion-reduce:transition-none ${glow.slide ? "transition-[translate,scale,opacity,color]" : "transition-opacity"} ${moodGlows[glowMember.mood]}`}
+                style={{
+                  left: size / 2 - glowSize / 2,
+                  top: miniTop + (mini - glowSize) / 2,
+                  width: glowSize,
+                  height: glowSize,
+                  translate: `${offsetOf(glow.index)}px 0`,
+                  scale: glowMember.mood === "idle" && open ? seenScale : 1,
+                  opacity: open && glow.on ? 1 : 0,
+                  boxShadow: "0 0 18px -6px currentColor",
+                }}
+              />
+            ) : null}
             {shown.map((member, index) => (
               <MiniMascot
                 key={member.key}
@@ -421,6 +461,7 @@ export default function ThreadMascot({
                 }}
                 offset={offsetOf(index)}
                 onOpen={(offset) => openMember(member, offset)}
+                onHover={(next) => glowOn(next ? index : null)}
               />
             ))}
             {forYou.length > 0 && !open ? (
