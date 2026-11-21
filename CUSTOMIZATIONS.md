@@ -2,7 +2,7 @@
 
 Newest first. Each entry: date, what changed (plain words), merge commit.
 
-- 2026-11-21: Dropping the companion quickly, while it's still doing its pick-up dance, keeps it where you let go instead of snapping back. (merge 2dca876c23)
+- 2026-11-21: Dropping the companion quickly, while it's still doing its pick-up dance, keeps it where you let go instead of snapping back, including when the desktop app misses the release. (merges 2dca876c23, 68e7e12eee)
 
 - 2026-11-20: The companion (and its stack and the Next unread pill) can be grabbed and moved over the desktop title bar too, instead of getting stuck there. (merge 26204b4dda)
 
