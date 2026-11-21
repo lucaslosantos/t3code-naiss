@@ -83,10 +83,10 @@ export function wantsYou(mood: MascotMood): boolean {
 }
 
 /**
- * Top-level threads that want you, are working, or were just visited and not settled. Threads that
- * want you come first, longest waiting first so none goes stale; the rest follow by most recent
- * visit. Subagents, side chats and snoozed threads stay out. `visits` holds thread keys, most
- * recent first.
+ * Every top-level thread that is not settled, so the stack is whole from the first render after a
+ * restart. Threads that want you come first, longest waiting first so none goes stale; the rest
+ * follow by most recent visit, then latest activity. Subagents, side chats and snoozed threads stay
+ * out. `visits` holds thread keys, most recent first.
  */
 export function buildMascotHerd(
   threads: ReadonlyArray<HerdThread>,
@@ -110,15 +110,12 @@ export function buildMascotHerd(
         return [];
       const ref = scopeThreadRef(thread.environmentId, thread.id);
       const key = scopedThreadKey(ref);
-      const mood: MascotMood | null =
-        resolveHerdMood(thread) ?? (visits.includes(key) ? "idle" : null);
-      if (mood === null) return [];
       return [
         {
           key,
           ref,
           title: thread.title,
-          mood,
+          mood: resolveHerdMood(thread) ?? ("idle" as MascotMood),
           at: resolveThreadActivityTimestamp(thread) ?? "",
         },
       ];
