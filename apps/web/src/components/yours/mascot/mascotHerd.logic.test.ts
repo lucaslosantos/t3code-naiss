@@ -58,15 +58,16 @@ function thread(
 }
 
 describe("buildMascotHerd", () => {
-  it("keeps busy top-level threads, most urgent first", () => {
+  it("keeps every unsettled top-level thread, most urgent first", () => {
     const herd = buildMascotHerd(
       [
         thread("old-work", { status: "running", sentAt: "2026-01-01T00:00:00.000Z" }),
         thread("new-work", { status: "running", sentAt: "2026-01-02T00:00:00.000Z" }),
         thread("broke", { status: "failed" }),
         thread("asks", { status: "running", approval: true }),
-        thread("parked", { status: "idle" }),
-        thread("done"),
+        thread("parked", { status: "idle", sentAt: "2026-01-03T00:00:00.000Z" }),
+        thread("done", { sentAt: "2026-01-01T00:00:00.000Z" }),
+        thread("settled", { settled: true }),
         thread("child", { status: "running", subagent: true }),
         thread("gone", { status: "running", archived: true }),
       ],
@@ -78,6 +79,8 @@ describe("buildMascotHerd", () => {
       ["broke", "failed"],
       ["new-work", "working"],
       ["old-work", "working"],
+      ["parked", "idle"],
+      ["done", "idle"],
     ]);
   });
 
@@ -111,12 +114,13 @@ describe("buildMascotHerd", () => {
       ["done-first", "unread"],
       ["done-later", "unread"],
       ["work", "working"],
+      ["read", "idle"],
     ]);
     expect(nextForYou(herd, herd[0]!.key)?.title).toBe("done-first");
     expect(nextForYou(herd.slice(3), null)).toBeNull();
   });
 
-  it("keeps visited threads you've read at the back, most recent visit first", () => {
+  it("keeps threads you've read at the back, most recent visit first", () => {
     const key = (id: string) => buildMascotHerd([thread(id, { status: "running" })])[0]!.key;
     const herd = buildMascotHerd(
       [
@@ -135,6 +139,7 @@ describe("buildMascotHerd", () => {
       ["work", "working"],
       ["left", "idle"],
       ["left-earlier", "idle"],
+      ["never-opened", "idle"],
     ]);
   });
 });
