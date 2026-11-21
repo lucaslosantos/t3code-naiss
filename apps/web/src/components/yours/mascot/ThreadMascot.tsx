@@ -266,6 +266,7 @@ export default function ThreadMascot({
     startX: number;
     startY: number;
     moved: boolean;
+    at: typeof position | null;
   } | null>(null);
   const { x, y } = moving ?? position;
   const dirX = clamp(x) > 0.5 ? -1 : 1;
@@ -464,6 +465,7 @@ export default function ThreadMascot({
                   startX: event.clientX,
                   startY: event.clientY,
                   moved: false,
+                  at: null,
                 };
                 event.currentTarget.setPointerCapture(event.pointerId);
               }}
@@ -483,21 +485,23 @@ export default function ThreadMascot({
                   drag.current.moved = true;
                   playReaction("flap");
                 }
-                setMoving({
+                drag.current.at = {
                   x: clamp(
                     (event.clientX - box.left - drag.current.dx) / Math.max(1, box.width - size),
                   ),
                   y: clamp(
                     (event.clientY - box.top - drag.current.dy) / Math.max(1, box.height - size),
                   ),
-                });
+                };
+                setMoving(drag.current.at);
               }}
               onPointerUp={(event) => {
                 if (!drag.current || !event.currentTarget.hasPointerCapture(event.pointerId))
                   return;
                 if (!drag.current.moved && goNext()) return;
                 playReaction(drag.current.moved ? "perk" : "boop");
-                if (moving) savePosition(moving);
+                // A quick drop can land before the last move renders, so save where the pointer is.
+                if (drag.current.at) savePosition(drag.current.at);
               }}
               onLostPointerCapture={() => {
                 drag.current = null;
