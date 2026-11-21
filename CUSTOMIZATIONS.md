@@ -2,7 +2,7 @@
 
 Newest first. Each entry: date, what changed (plain words), merge commit.
 
-- 2026-11-21: Hovering a small mascot in the stack lights a soft plate behind it in its thread's colour, and the plate glides from one mascot to the next as you move across them. (merge 7f29b0f4c1)
+- 2026-11-21: Hovering a small mascot in the stack lights up its thread's row in the sidebar with a soft glow in the thread's colour, fading from row to row as you move across the mascots. (merges 734719bebe, 983cb8b1cf)
 
 - 2026-11-21: The Next unread pill sits closer to the message box, level with "Scroll to end", shows its shortcut as plain text, and the chat leaves room so it never covers the last lines. (merge 0e948a0428)
 
