@@ -393,6 +393,7 @@ import { ChatTerminalDrawers } from "./chat/ChatTerminalDrawers";
 import { WorktreePrBar } from "./yours/WorktreePrBar";
 import { ChatRightPanel } from "./chat/ChatRightPanel";
 import { useRightTerminalDock } from "./yours/RightTerminalDock";
+import { useNextUnreadPillInset } from "./yours/mascot/mascotHerd.state";
 import { useDraftEnvironmentRouting } from "./chat/useDraftEnvironmentRouting";
 import { branchMismatchBannerItem, extensionStatusBannerItem } from "./chat/ThreadActivityBanners";
 import { ThreadNow } from "./chat/ThreadNow";
@@ -2197,6 +2198,9 @@ export default function ChatView(props: ChatViewProps) {
     return result;
   };
 
+  const timelineEndInset =
+    composerTimelineInset +
+    useNextUnreadPillInset(activeThreadKey ?? routeThreadKey, !embedded && !backgroundThread);
   const {
     showScrollToBottom,
     timelineLiveFollowEnabled,
@@ -2213,7 +2217,7 @@ export default function ChatView(props: ChatViewProps) {
     attachComposerOverlay: attachFollowComposerOverlay,
   } = useTimelineFollow({
     legendListRef,
-    composerTimelineInset,
+    composerTimelineInset: timelineEndInset,
     routeThreadKey,
     activeThreadKey,
     isServerThread,
@@ -3578,7 +3582,7 @@ export default function ChatView(props: ChatViewProps) {
                 <Suspense fallback={null}>
                   <ThreadMascot
                     threadKey={activeThreadKey ?? routeThreadKey}
-                    pillBottom={scrollToEndClearance + 4}
+                    pillBottom={scrollToEndClearance}
                     mood={
                       activePendingApproval || activePendingUserInput
                         ? "waiting"
@@ -3684,7 +3688,7 @@ export default function ChatView(props: ChatViewProps) {
                   anchorMessageId={timelineAnchorMessageId}
                   onAnchorReady={onTimelineAnchorReadyStable}
                   onAnchorSizeChanged={onTimelineAnchorSizeChangedStable}
-                  contentInsetEndAdjustment={composerTimelineInset}
+                  contentInsetEndAdjustment={timelineEndInset}
                   liveFollowEnabled={timelineLiveFollowEnabled}
                   onIsAtEndChange={onIsAtEndChangeStable}
                   onViewportAttach={attachTimelineViewport}
@@ -3700,7 +3704,8 @@ export default function ChatView(props: ChatViewProps) {
 
               {showScrollToBottom && !isThreadFindActive && (
                 <ScrollToEndButton
-                  bottom={scrollToEndClearance + 4}
+                  // Level with the "Next unread" pill; the button's wrapper adds 6px of its own.
+                  bottom={scrollToEndClearance - 6}
                   summary={scrollToEndSummary}
                   onScrollToEnd={() => scrollToEnd(true)}
                 />

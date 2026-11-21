@@ -3,7 +3,16 @@ import { Atom } from "effect/reactivity";
 
 import { appAtomRegistry } from "../../../rpc/atomRegistry";
 import { environmentThreadShells } from "../../../state/threads";
-import { buildMascotHerd, sameHerd, type HerdMember } from "./mascotHerd.logic";
+import { buildMascotHerd, nextForYou, sameHerd, type HerdMember } from "./mascotHerd.logic";
+
+/** The companion's artwork is not in the repo; without it neither the companion nor its pill shows. */
+export const companionUrl = Object.values(
+  import.meta.glob<string>("./companion.riv", {
+    eager: true,
+    query: "?url",
+    import: "default",
+  }),
+)[0];
 
 const maxVisits = 8;
 const visitsAtom = Atom.make<ReadonlyArray<string>>([]).pipe(
@@ -32,6 +41,12 @@ const herdAtom = Atom.make((get) => {
 
 export function useMascotHerd(): ReadonlyArray<HerdMember> {
   return useAtomValue(herdAtom);
+}
+
+/** Room the timeline keeps under its last row for the "Next unread" pill, so the pill covers nothing. */
+export function useNextUnreadPillInset(threadKey: string, mounted: boolean): number {
+  const pill = nextForYou(useMascotHerd(), threadKey) !== null;
+  return pill && mounted && companionUrl ? 34 : 0;
 }
 
 const nextUnreadRequests = new EventTarget();

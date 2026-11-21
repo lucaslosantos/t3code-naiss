@@ -22,18 +22,14 @@ import { primaryServerKeybindingsAtom } from "../../../state/server";
 import { buildThreadRouteParams } from "../../../threadRoutes";
 import { threadShortcutContext } from "../../Sidebar.logic";
 import { Button } from "../../ui/button";
-import { Kbd } from "../../ui/kbd";
 import { Tooltip, TooltipPopup, TooltipTrigger } from "../../ui/tooltip";
 import { nextForYou, wantsYou, type HerdMember, type MascotMood } from "./mascotHerd.logic";
-import { onNextUnreadRequest, recordMascotVisit, useMascotHerd } from "./mascotHerd.state";
-
-const companionUrl = Object.values(
-  import.meta.glob<string>("./companion.riv", {
-    eager: true,
-    query: "?url",
-    import: "default",
-  }),
-)[0];
+import {
+  companionUrl,
+  onNextUnreadRequest,
+  recordMascotVisit,
+  useMascotHerd,
+} from "./mascotHerd.state";
 
 RuntimeLoader.setWasmUrl(wasmUrl);
 RuntimeLoader.setWasmFallbackUrl(fallbackUrl);
@@ -348,7 +344,7 @@ export default function ThreadMascot({
     nextUp === null ? null : (
       <div
         // The composer's own lane and width, so the pill's edge lines up with the message box.
-        className="chat-composer-lane pointer-events-none absolute inset-x-0 z-30 py-1.5"
+        className="chat-composer-lane pointer-events-none absolute inset-x-0 z-30"
         style={{ bottom: pillBottom }}
       >
         <div className="mx-auto flex w-full max-w-(--chat-content-max-width) justify-end">
@@ -372,7 +368,9 @@ export default function ThreadMascot({
               {forYou.length > 1 ? (
                 <span className="text-muted-foreground tabular-nums">{forYou.length}</span>
               ) : null}
-              {nextShortcut ? <Kbd className="max-sm:hidden">{nextShortcut}</Kbd> : null}
+              {nextShortcut ? (
+                <span className="text-muted-foreground max-sm:hidden">{nextShortcut}</span>
+              ) : null}
             </TooltipTrigger>
             <TooltipPopup side="top">
               <span className="font-medium">{nextUp.title}</span>
