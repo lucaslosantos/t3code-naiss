@@ -2,6 +2,8 @@
 
 Newest first. Each entry: date, what changed (plain words), merge commit.
 
+- 2026-11-21: Dropping the companion quickly, while it's still doing its pick-up dance, keeps it where you let go instead of snapping back. (merge 2dca876c23)
+
 - 2026-11-20: The companion (and its stack and the Next unread pill) can be grabbed and moved over the desktop title bar too, instead of getting stuck there. (merge 26204b4dda)
 
 - 2026-11-20: Finished threads you haven't read now show as green companions at the front of the mascot stack, next to the ones that need you; threads you've read stay tucked in solid grey at the back. A count on the companion's head, in the colour of the most urgent thread, says how many want you, and tapping the companion, the "Next unread" pill above the composer (lined up with its edge), the command palette or ⌘⇧U takes you to the next one, longest waiting first. (merges 9c81956f66, 3f5a29809e, d312fd52c0, 4c6f017e79, 72d7a1a555, 0a990e83b0)
