@@ -25,64 +25,73 @@ import { sectionDefinitions } from "./useCustomSections";
 /** Per-color classes. Tints sit near 12% so a chip reads as a hue, not a badge. */
 export const SECTION_COLOR_STYLES = {
   gray: {
+    // Opaque, so a lifted section still covers the rows it passes over.
+    fill: "bg-[color-mix(in_oklab,var(--color-zinc-500)_7%,var(--color-sidebar))]",
     label: msg("Gray", { $context: "section color" }),
     dot: "bg-sidebar-muted-foreground/60",
     chip: "bg-sidebar-foreground/8 text-sidebar-foreground/70",
-    drop: "bg-sidebar-foreground/4 before:bg-sidebar-foreground/35",
+    drop: "ring-1 ring-inset ring-sidebar-foreground/20",
     dropHint: "border-sidebar-foreground/30 text-sidebar-foreground/80",
   },
   blue: {
+    fill: "bg-[color-mix(in_oklab,var(--color-blue-500)_10%,var(--color-sidebar))]",
     label: msg("Blue", { $context: "section color" }),
     dot: "bg-blue-500",
     chip: "bg-blue-500/12 text-blue-600 dark:text-blue-400",
-    drop: "bg-blue-500/6 before:bg-blue-500",
+    drop: "ring-1 ring-inset ring-blue-500/40",
     dropHint: "border-blue-500/40 text-blue-600 dark:text-blue-400",
   },
   green: {
+    fill: "bg-[color-mix(in_oklab,var(--color-emerald-500)_10%,var(--color-sidebar))]",
     label: msg("Green", { $context: "section color" }),
     dot: "bg-emerald-500",
     chip: "bg-emerald-500/12 text-emerald-600 dark:text-emerald-400",
-    drop: "bg-emerald-500/6 before:bg-emerald-500",
+    drop: "ring-1 ring-inset ring-emerald-500/40",
     dropHint: "border-emerald-500/40 text-emerald-600 dark:text-emerald-400",
   },
   yellow: {
+    fill: "bg-[color-mix(in_oklab,var(--color-amber-400)_10%,var(--color-sidebar))]",
     label: msg("Yellow", { $context: "section color" }),
     dot: "bg-amber-400",
     chip: "bg-amber-400/15 text-amber-600 dark:text-amber-400",
-    drop: "bg-amber-400/8 before:bg-amber-400",
+    drop: "ring-1 ring-inset ring-amber-400/40",
     dropHint: "border-amber-400/50 text-amber-600 dark:text-amber-400",
   },
   orange: {
+    fill: "bg-[color-mix(in_oklab,var(--color-orange-500)_10%,var(--color-sidebar))]",
     label: msg("Orange", { $context: "section color" }),
     dot: "bg-orange-500",
     chip: "bg-orange-500/12 text-orange-600 dark:text-orange-400",
-    drop: "bg-orange-500/6 before:bg-orange-500",
+    drop: "ring-1 ring-inset ring-orange-500/40",
     dropHint: "border-orange-500/40 text-orange-600 dark:text-orange-400",
   },
   red: {
+    fill: "bg-[color-mix(in_oklab,var(--color-red-500)_10%,var(--color-sidebar))]",
     label: msg("Red", { $context: "section color" }),
     dot: "bg-red-500",
     chip: "bg-red-500/12 text-red-600 dark:text-red-400",
-    drop: "bg-red-500/6 before:bg-red-500",
+    drop: "ring-1 ring-inset ring-red-500/40",
     dropHint: "border-red-500/40 text-red-600 dark:text-red-400",
   },
   purple: {
+    fill: "bg-[color-mix(in_oklab,var(--color-violet-500)_10%,var(--color-sidebar))]",
     label: msg("Purple", { $context: "section color" }),
     dot: "bg-violet-500",
     chip: "bg-violet-500/12 text-violet-600 dark:text-violet-400",
-    drop: "bg-violet-500/6 before:bg-violet-500",
+    drop: "ring-1 ring-inset ring-violet-500/40",
     dropHint: "border-violet-500/40 text-violet-600 dark:text-violet-400",
   },
   pink: {
+    fill: "bg-[color-mix(in_oklab,var(--color-pink-500)_10%,var(--color-sidebar))]",
     label: msg("Pink", { $context: "section color" }),
     dot: "bg-pink-500",
     chip: "bg-pink-500/12 text-pink-600 dark:text-pink-400",
-    drop: "bg-pink-500/6 before:bg-pink-500",
+    drop: "ring-1 ring-inset ring-pink-500/40",
     dropHint: "border-pink-500/40 text-pink-600 dark:text-pink-400",
   },
 } as const satisfies Record<
   SidebarSectionColor,
-  { label: string; dot: string; chip: string; drop: string; dropHint: string }
+  { fill: string; label: string; dot: string; chip: string; drop: string; dropHint: string }
 >;
 
 /** The 20px mark at the start of a section header: a tinted icon chip, an emoji, or the dot. */

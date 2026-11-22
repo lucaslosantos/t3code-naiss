@@ -83,7 +83,7 @@ export function SidebarCustomSections<T extends SectionThread>(props: {
         visibility: transform?.scaleY === 0 ? "hidden" : undefined,
       }}
     >
-      <ul ref={listRef} className="flex flex-col gap-0.5 pt-1">
+      <ul ref={listRef} className="flex flex-col gap-1.5 pt-1">
         {props.groups.map((group, index) => (
           <CustomSection
             key={group.section.id}
@@ -303,9 +303,11 @@ function CustomSection<T extends SectionThread>(props: {
       data-testid="sidebar-custom-section"
       style={props.reorderStyle}
       className={cn(
-        "group/custom-section relative list-none rounded-md transition-colors duration-150 before:pointer-events-none before:absolute before:inset-y-1.5 before:left-0 before:w-0.5 before:rounded-full before:opacity-0 before:transition-opacity motion-reduce:transition-none motion-reduce:before:transition-none",
-        highlighted && ["before:opacity-100", styles.drop],
-        lifted && "z-20 bg-sidebar shadow-lg ring-1 ring-sidebar-foreground/8",
+        "group/custom-section relative list-none rounded-lg transition-colors duration-150 motion-reduce:transition-none",
+        styles.fill,
+        threads.length > 0 && "pb-1",
+        highlighted && styles.drop,
+        lifted && "z-20 shadow-lg ring-1 ring-sidebar-foreground/8",
       )}
     >
       {renaming ? (
@@ -407,14 +409,14 @@ function CustomSection<T extends SectionThread>(props: {
         </>
       )}
       {threads.length > 0 ? (
-        <ul className="flex flex-col gap-px">
+        <ul className="flex flex-col gap-px px-1">
           {threads.map((thread) => props.renderThread(thread))}
         </ul>
       ) : !section.collapsed ? (
         // Same height idle and mid-drag, so nothing shifts under the pointer.
         <div
           className={cn(
-            "mb-1 flex h-7 items-center rounded-md border border-dashed ps-2.5 text-xs transition-colors duration-150 motion-reduce:transition-none",
+            "mx-1 mb-1 flex h-7 items-center rounded-md border border-dashed ps-2.5 text-xs transition-colors duration-150 motion-reduce:transition-none",
             highlighted
               ? styles.dropHint
               : props.dragging
