@@ -28,7 +28,17 @@ The owner is a designer and product person, not an engineer. They talk about wha
 5. Build the app: `~/projects/t3code-naiss/scripts/yours/build.sh`. If it fails, fix it before going on.
 6. Tell the owner in one or two plain sentences what changed. Then apply: `~/projects/t3code-naiss/scripts/yours/apply.sh --detach`. The app restarts a few seconds after your turn ends, and threads resume.
 
+## Teammates (machines that follow the owner's build)
+
+Teammates install with `scripts/yours/teammate-setup.sh` (the one-line command is at its top). Their checkout has `git config yours.follow` set to `true`. On such a machine:
+
+- **Updating** means `~/projects/t3code-naiss/scripts/yours/follow.sh --now`. It brings in the owner's latest `yours`, builds and installs it. Never merge `upstream` there: the owner does that and teammates get it the next morning (the LaunchAgent `com.t3tools.t3code.yours.follow` runs `follow.sh` daily and asks before restarting).
+- **Making a change** works as below, but commit to the local `yours` only and never push: teammates cannot write to `origin`. `follow.sh` merges the owner's updates on top; if they conflict it stops and says so, and you resolve it here like an upstream conflict.
+- Undo and Rollback work as below, without pushing.
+
 ## Updating (pulling official T3 Code changes)
+
+On a teammate machine, follow "Teammates" above instead.
 
 1. `git -C ~/projects/t3code-naiss fetch upstream`, then fast-forward `main` to `upstream/main` and push it.
 2. In a worktree from `yours`, merge `upstream/main`. Resolve conflicts so that **both** upstream's change and the owner's customization survive; `CUSTOMIZATIONS.md` explains what each customization is for.
