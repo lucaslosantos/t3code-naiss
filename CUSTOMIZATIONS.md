@@ -2,7 +2,7 @@
 
 Newest first. Each entry: date, what changed (plain words), merge commit.
 
-- 2026-11-22: Teammates can install this version with one Terminal command; their app updates from yours every morning and asks before restarting.
+- 2026-11-22: Teammates can install this version with one Terminal command; their app updates from yours every morning and asks before restarting. (merge 87ff3cef98)
 
 - 2026-11-21: After a restart the mascot stack is complete right away: every thread that isn't settled has its mascot, with its current state, without having to open each one first. (merge 526d1056fa)
 
