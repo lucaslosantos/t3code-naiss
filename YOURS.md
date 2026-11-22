@@ -35,6 +35,7 @@ Teammates install with `scripts/yours/teammate-setup.sh` (the one-line command i
 - **Updating** means `~/projects/t3code-naiss/scripts/yours/follow.sh --now`. It brings in the owner's latest `yours`, builds and installs it. Never merge `upstream` there: the owner does that and teammates get it the next morning (the LaunchAgent `com.t3tools.t3code.yours.follow` runs `follow.sh` daily and asks before restarting).
 - **Making a change** works as below, but commit to the local `yours` only and never push: teammates cannot write to `origin`. `follow.sh` merges the owner's updates on top; if they conflict it stops and says so, and you resolve it here like an upstream conflict.
 - Undo and Rollback work as below, without pushing.
+- The logo and companion mascot are private, so they are not in the repo. The owner runs `scripts/yours/share-artwork.sh` and sends the zip; teammates run `scripts/yours/add-artwork.sh`, which installs it to `~/.t3/luko-artwork` and rebuilds.
 
 ## Updating (pulling official T3 Code changes)
 

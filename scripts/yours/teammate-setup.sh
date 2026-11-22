@@ -53,6 +53,11 @@ git config yours.follow true
 git config user.email >/dev/null || git config user.email "teammate@t3code-naiss.local"
 git config user.name >/dev/null || git config user.name "T3 Code (naiss) teammate"
 
+if [[ ! -f "$HOME/.t3/luko-artwork/companion.riv" ]] && ls "$HOME"/Downloads/naiss-artwork*.zip >/dev/null 2>&1; then
+  say "Adding the Naiss logo and mascot from your Downloads..."
+  YOURS_ARTWORK_NO_REBUILD=1 scripts/yours/add-artwork.sh
+fi
+
 say "Building and installing the app (takes a few minutes the first time)..."
 vp i
 rm -f "$HOME/.t3/yours-follow-built"
