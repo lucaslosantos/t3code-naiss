@@ -226,6 +226,7 @@ import {
 } from "./Sidebar.drag";
 import { SidebarPointerSensor } from "./Sidebar.pointer";
 import { SidebarCustomSections } from "./sidebar/yours/SidebarCustomSections";
+import { useDragLabelReveal } from "./sidebar/yours/dragLabelReveal";
 import {
   customSectionDropTarget,
   withCustomSectionCollisions,
@@ -1098,6 +1099,7 @@ export default function Sidebar({ routeReveal }: { routeReveal: SidebarRouteReve
   const renamingOriginalTitleRef = useRef("");
   const settlingThreadKeysRef = useRef(new Set<string>());
   const threadListRef = useRef<HTMLUListElement | null>(null);
+  const dragLabels = useDragLabelReveal(threadListRef);
   const searchResultsListRef = useRef<HTMLUListElement | null>(null);
   const sidebarContentRef = useRef<HTMLDivElement | null>(null);
   const dragLabelOffsetRef = useRef(0);
@@ -1803,6 +1805,11 @@ export default function Sidebar({ routeReveal }: { routeReveal: SidebarRouteReve
     dragState?.contextDrag === true ||
     dragState?.activeSection === "working";
   const dragTargetSection = isContextDrag ? null : (dragState?.targetSection ?? null);
+  // Fork-only: the pin labels open only when a drag heads for the top, so pickup doesn't shift rows.
+  const showDragLabels =
+    !isContextDrag &&
+    dragState !== null &&
+    (dragState.activeSection === "pinned" || dragLabels.revealed);
   const finishThreadDrag = (started: boolean) => {
     dragSensorRef.current = null;
     contextDragKeyRef.current = null;
@@ -1985,6 +1992,7 @@ export default function Sidebar({ routeReveal }: { routeReveal: SidebarRouteReve
   const handleThreadDragStart = (event: DragStartEvent) => {
     const activeKey = String(event.active.id);
     contextDragKeyRef.current = activeKey;
+    dragLabels.start();
     const activeSection = sectionByThreadKey.get(activeKey);
     if (activeSection === undefined) {
       // Fork-only: rows in custom sections sit above the pinned label's limit.
@@ -2153,7 +2161,7 @@ export default function Sidebar({ routeReveal }: { routeReveal: SidebarRouteReve
   const sidebarSortingStrategy = createSidebarSortingStrategy({
     items: sidebarListItems,
     enabled: !isContextDrag,
-    boundaryLabelHeight: SIDEBAR_DRAG_LABEL_HEIGHT,
+    boundaryLabelHeight: showDragLabels ? SIDEBAR_DRAG_LABEL_HEIGHT : 0,
     settledOrder: draggedSettledOrder,
     ...(draggedActiveOrder === undefined ? {} : { activeOrder: draggedActiveOrder }),
     settledExpanded: settledShelfExpanded,
@@ -3741,7 +3749,7 @@ export default function Sidebar({ routeReveal }: { routeReveal: SidebarRouteReve
                                 key="pinned-header"
                                 marker="pinned-header"
                                 label={gt("Pinned", { $context: "sidebar section" })}
-                                visible={from !== null}
+                                visible={showDragLabels}
                                 isDropTarget={dragTargetSection === "pinned"}
                               />,
                             );
@@ -3752,7 +3760,7 @@ export default function Sidebar({ routeReveal }: { routeReveal: SidebarRouteReve
                                 key="pinned-divider"
                                 marker="pinned-divider"
                                 label={gt("Active", { $context: "sidebar section" })}
-                                visible={from !== null}
+                                visible={showDragLabels}
                                 isDropTarget={dragTargetSection === "active"}
                               />,
                             );

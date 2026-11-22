@@ -304,9 +304,8 @@ function CustomSection<T extends SectionThread>(props: {
       style={props.reorderStyle}
       className={cn(
         "group/custom-section relative list-none rounded-lg transition-colors duration-150 motion-reduce:transition-none",
-        styles.fill,
+        highlighted ? [styles.dropFill, styles.drop] : styles.fill,
         threads.length > 0 && "pb-1",
-        highlighted && styles.drop,
         lifted && "z-20 shadow-lg ring-1 ring-sidebar-foreground/8",
       )}
     >
