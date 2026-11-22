@@ -2,6 +2,8 @@
 
 Newest first. Each entry: date, what changed (plain words), merge commit.
 
+- 2026-11-22: Each sidebar section has a soft background in its icon's color, covering the header and all its threads, so it's clear which threads belong to it (like Arc). (merge a5ec3c3eec)
+
 - 2026-11-22: The Naiss logo and mascot can be shared as a zip: teammates add it with one command and the app rebuilds with them. (merge c9c14f1544)
 
 - 2026-11-22: Teammates can install this version with one Terminal command; their app updates from yours every morning and asks before restarting. (merge 87ff3cef98)
