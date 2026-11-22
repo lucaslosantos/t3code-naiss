@@ -27,6 +27,7 @@ export const SECTION_COLOR_STYLES = {
   gray: {
     // Opaque, so a lifted section still covers the rows it passes over.
     fill: "bg-[color-mix(in_oklab,var(--color-zinc-500)_7%,var(--color-sidebar))]",
+    dropFill: "bg-[color-mix(in_oklab,var(--color-zinc-500)_14%,var(--color-sidebar))]",
     label: msg("Gray", { $context: "section color" }),
     dot: "bg-sidebar-muted-foreground/60",
     chip: "bg-sidebar-foreground/8 text-sidebar-foreground/70",
@@ -35,6 +36,7 @@ export const SECTION_COLOR_STYLES = {
   },
   blue: {
     fill: "bg-[color-mix(in_oklab,var(--color-blue-500)_10%,var(--color-sidebar))]",
+    dropFill: "bg-[color-mix(in_oklab,var(--color-blue-500)_20%,var(--color-sidebar))]",
     label: msg("Blue", { $context: "section color" }),
     dot: "bg-blue-500",
     chip: "bg-blue-500/12 text-blue-600 dark:text-blue-400",
@@ -43,6 +45,7 @@ export const SECTION_COLOR_STYLES = {
   },
   green: {
     fill: "bg-[color-mix(in_oklab,var(--color-emerald-500)_10%,var(--color-sidebar))]",
+    dropFill: "bg-[color-mix(in_oklab,var(--color-emerald-500)_20%,var(--color-sidebar))]",
     label: msg("Green", { $context: "section color" }),
     dot: "bg-emerald-500",
     chip: "bg-emerald-500/12 text-emerald-600 dark:text-emerald-400",
@@ -51,6 +54,7 @@ export const SECTION_COLOR_STYLES = {
   },
   yellow: {
     fill: "bg-[color-mix(in_oklab,var(--color-amber-400)_10%,var(--color-sidebar))]",
+    dropFill: "bg-[color-mix(in_oklab,var(--color-amber-400)_20%,var(--color-sidebar))]",
     label: msg("Yellow", { $context: "section color" }),
     dot: "bg-amber-400",
     chip: "bg-amber-400/15 text-amber-600 dark:text-amber-400",
@@ -59,6 +63,7 @@ export const SECTION_COLOR_STYLES = {
   },
   orange: {
     fill: "bg-[color-mix(in_oklab,var(--color-orange-500)_10%,var(--color-sidebar))]",
+    dropFill: "bg-[color-mix(in_oklab,var(--color-orange-500)_20%,var(--color-sidebar))]",
     label: msg("Orange", { $context: "section color" }),
     dot: "bg-orange-500",
     chip: "bg-orange-500/12 text-orange-600 dark:text-orange-400",
@@ -67,6 +72,7 @@ export const SECTION_COLOR_STYLES = {
   },
   red: {
     fill: "bg-[color-mix(in_oklab,var(--color-red-500)_10%,var(--color-sidebar))]",
+    dropFill: "bg-[color-mix(in_oklab,var(--color-red-500)_20%,var(--color-sidebar))]",
     label: msg("Red", { $context: "section color" }),
     dot: "bg-red-500",
     chip: "bg-red-500/12 text-red-600 dark:text-red-400",
@@ -75,6 +81,7 @@ export const SECTION_COLOR_STYLES = {
   },
   purple: {
     fill: "bg-[color-mix(in_oklab,var(--color-violet-500)_10%,var(--color-sidebar))]",
+    dropFill: "bg-[color-mix(in_oklab,var(--color-violet-500)_20%,var(--color-sidebar))]",
     label: msg("Purple", { $context: "section color" }),
     dot: "bg-violet-500",
     chip: "bg-violet-500/12 text-violet-600 dark:text-violet-400",
@@ -83,6 +90,7 @@ export const SECTION_COLOR_STYLES = {
   },
   pink: {
     fill: "bg-[color-mix(in_oklab,var(--color-pink-500)_10%,var(--color-sidebar))]",
+    dropFill: "bg-[color-mix(in_oklab,var(--color-pink-500)_20%,var(--color-sidebar))]",
     label: msg("Pink", { $context: "section color" }),
     dot: "bg-pink-500",
     chip: "bg-pink-500/12 text-pink-600 dark:text-pink-400",
@@ -91,7 +99,15 @@ export const SECTION_COLOR_STYLES = {
   },
 } as const satisfies Record<
   SidebarSectionColor,
-  { fill: string; label: string; dot: string; chip: string; drop: string; dropHint: string }
+  {
+    fill: string;
+    dropFill: string;
+    label: string;
+    dot: string;
+    chip: string;
+    drop: string;
+    dropHint: string;
+  }
 >;
 
 /** The 20px mark at the start of a section header: a tinted icon chip, an emoji, or the dot. */
