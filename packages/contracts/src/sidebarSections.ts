@@ -21,6 +21,11 @@ export const SIDEBAR_SECTION_COLORS = [
   "cyan",
   "fuchsia",
   "brown",
+  "amber",
+  "lemon",
+  "peach",
+  "rust",
+  "gold",
 ] as const;
 export type SidebarSectionColor = (typeof SIDEBAR_SECTION_COLORS)[number];
 
