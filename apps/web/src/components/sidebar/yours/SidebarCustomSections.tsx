@@ -459,7 +459,7 @@ function SectionNameInput(props: {
     }
   };
   return (
-    <div className="flex h-8 items-center gap-1 ps-2 pe-2">
+    <div className="flex h-8 items-center gap-0.5 ps-2 pe-2">
       {props.glyph}
       <input
         autoFocus
@@ -470,7 +470,7 @@ function SectionNameInput(props: {
         onFocus={(event) => event.currentTarget.select()}
         onKeyDown={handleKeyDown}
         onBlur={(event) => finish(event.currentTarget.value)}
-        className="-mx-1 min-w-0 flex-1 rounded-sm bg-card px-1 text-xs font-semibold text-card-foreground outline-none ring-1 ring-inset ring-input focus:ring-foreground"
+        className="h-6 min-w-0 flex-1 rounded-md bg-sidebar/70 px-1.5 text-xs font-semibold text-sidebar-foreground shadow-xs outline-none ring-1 ring-inset ring-sidebar-foreground/10 selection:bg-sidebar-foreground/15"
       />
     </div>
   );
