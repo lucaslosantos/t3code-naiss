@@ -3,6 +3,7 @@ import * as Option from "effect/Option";
 import * as Schema from "effect/Schema";
 import * as SchemaTransformation from "effect/SchemaTransformation";
 
+// New sections take the first unused color, so neighbors in this list should differ clearly.
 export const SIDEBAR_SECTION_COLORS = [
   "gray",
   "blue",
@@ -12,6 +13,14 @@ export const SIDEBAR_SECTION_COLORS = [
   "red",
   "purple",
   "pink",
+  "teal",
+  "indigo",
+  "sky",
+  "rose",
+  "lime",
+  "cyan",
+  "fuchsia",
+  "brown",
 ] as const;
 export type SidebarSectionColor = (typeof SIDEBAR_SECTION_COLORS)[number];
 

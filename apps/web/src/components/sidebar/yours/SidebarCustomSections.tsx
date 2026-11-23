@@ -4,7 +4,6 @@ import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { scopedThreadKey, scopeThreadRef } from "@t3tools/client-runtime/environment";
 import { settlePromise } from "@t3tools/client-runtime/state/runtime";
-import { SIDEBAR_SECTION_COLORS } from "@t3tools/contracts";
 import { ChevronDownIcon, EllipsisIcon, PlusIcon } from "lucide-react";
 import {
   type CSSProperties,
@@ -28,7 +27,12 @@ import {
   sectionReorderIndex,
   sidebarSectionDropId,
 } from "./customSections.logic";
-import { SECTION_COLOR_STYLES, SectionGlyph, SectionIconPicker } from "./SectionIconPicker";
+import {
+  SECTION_COLOR_ORDER,
+  SECTION_COLOR_STYLES,
+  SectionGlyph,
+  SectionIconPicker,
+} from "./SectionIconPicker";
 import { resolveSectionIcon } from "./sectionIcons.logic";
 import {
   sectionDefinitions,
@@ -243,7 +247,7 @@ function CustomSection<T extends SectionThread>(props: {
             {
               id: "color",
               label: gt("Color", { $context: "section color" }),
-              children: SIDEBAR_SECTION_COLORS.map((option) => ({
+              children: SECTION_COLOR_ORDER.map((option) => ({
                 id: `color:${option}`,
                 label: m(SECTION_COLOR_STYLES[option].label),
                 checked: option === color,
