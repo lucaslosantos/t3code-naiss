@@ -2,6 +2,8 @@
 
 Newest first. Each entry: date, what changed (plain words), merge commit.
 
+- 2026-11-23: Section backgrounds are stronger so they read clearly, and there are 16 colors now (added rose, fuchsia, indigo, sky, cyan, teal, lime and brown), in a row you scroll sideways. (merge e389ad78bd)
+
 - 2026-11-22: Dragging a thread into a section feels calmer: nothing in the sidebar shifts when you pick it up, and the section under the cursor glows in its color (inspired by Conductor). The Pinned/Active labels only appear when you drag to the very top. (merge b26bcad10a)
 
 - 2026-11-22: Each sidebar section has a soft background in its icon's color, covering the header and all its threads, so it's clear which threads belong to it (like Arc). (merge a5ec3c3eec)
