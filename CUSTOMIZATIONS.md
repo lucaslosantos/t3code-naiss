@@ -2,6 +2,8 @@
 
 Newest first. Each entry: date, what changed (plain words), merge commit.
 
+- 2026-11-26: The pull request bar above the right panel now shows the same pull request as the thread details panel (with its stack and status), instead of sometimes offering Create PR when the thread already has one. (merge 7d936d41e4)
+
 - 2026-11-23: Five more warm section colors (lemon, gold, amber, peach, rust), and renaming a section shows a soft field in the section's own color instead of a harsh white box. (merge 39478255b7)
 
 - 2026-11-23: Section backgrounds are stronger so they read clearly, and there are 16 colors now (added rose, fuchsia, indigo, sky, cyan, teal, lime and brown), in a row you scroll sideways. (merge e389ad78bd)
