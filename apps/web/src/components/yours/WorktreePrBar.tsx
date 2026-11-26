@@ -28,11 +28,13 @@ import { usePullRequestDetail } from "../pullRequest/usePullRequestDetail";
 import { ContinueWorktreeButton } from "./ContinueWorktreeButton";
 import { useQuietThreadShell } from "~/state/entities";
 import { useThreadDisplayedPullRequest } from "../ThreadStatusIndicators";
+import { resolveWorktreeBarPr } from "./worktreePrBar.logic";
 
 type BarProps = {
   thread: ScopedThreadRef;
   projectId: ProjectId;
   pr: VcsStatusResult["pr"];
+  branch: string | null;
   onPrompt: (prompt: string) => void;
 };
 
@@ -199,25 +201,11 @@ function LinkedActions({
   );
 }
 
-export function WorktreePrBar({ thread, projectId, pr: branchPr, onPrompt }: BarProps) {
+export function WorktreePrBar({ thread, projectId, pr: branchPr, branch, onPrompt }: BarProps) {
   const gt = useGT();
-  // Fork-only: show the PR the thread is linked to (same as the details panel), not only the
-  // one git finds for the branch, which misses PRs opened from another branch or a failed lookup.
   const shell = useQuietThreadShell(thread);
-  const displayed = useThreadDisplayedPullRequest(thread.environmentId, shell, branchPr);
-  const link = displayed.currentLink;
-  const pr: BarProps["pr"] =
-    displayed.pr ??
-    (link === null
-      ? null
-      : {
-          number: link.number,
-          title: `#${link.number}`,
-          url: link.url,
-          baseRef: "-",
-          headRef: "-",
-          state: "open",
-        });
+  const linked = useThreadDisplayedPullRequest(thread.environmentId, shell).pr;
+  const pr = resolveWorktreeBarPr(branchPr, linked, branch);
   const canWrite = useEnvironmentScope(thread.environmentId, AuthSourceControlWriteScope);
   const parsed = pr && sourceControlClients.parseChangeRequestUrl(pr.url);
   const prLink = parsed?.link;
