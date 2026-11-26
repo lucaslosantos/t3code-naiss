@@ -26,6 +26,8 @@ import {
 } from "../pullRequest/pullRequestDetail.logic";
 import { usePullRequestDetail } from "../pullRequest/usePullRequestDetail";
 import { ContinueWorktreeButton } from "./ContinueWorktreeButton";
+import { useQuietThreadShell } from "~/state/entities";
+import { useThreadDisplayedPullRequest } from "../ThreadStatusIndicators";
 
 type BarProps = {
   thread: ScopedThreadRef;
@@ -197,11 +199,28 @@ function LinkedActions({
   );
 }
 
-export function WorktreePrBar({ thread, projectId, pr, onPrompt }: BarProps) {
+export function WorktreePrBar({ thread, projectId, pr: branchPr, onPrompt }: BarProps) {
   const gt = useGT();
+  // Fork-only: show the PR the thread is linked to (same as the details panel), not only the
+  // one git finds for the branch, which misses PRs opened from another branch or a failed lookup.
+  const shell = useQuietThreadShell(thread);
+  const displayed = useThreadDisplayedPullRequest(thread.environmentId, shell, branchPr);
+  const link = displayed.currentLink;
+  const pr: BarProps["pr"] =
+    displayed.pr ??
+    (link === null
+      ? null
+      : {
+          number: link.number,
+          title: `#${link.number}`,
+          url: link.url,
+          baseRef: "-",
+          headRef: "-",
+          state: "open",
+        });
   const canWrite = useEnvironmentScope(thread.environmentId, AuthSourceControlWriteScope);
   const parsed = pr && sourceControlClients.parseChangeRequestUrl(pr.url);
-  const link = parsed?.link;
+  const prLink = parsed?.link;
   if (!pr && !canWrite) return null;
   if (pr) {
     const hostLabel = openOnHostLabel(parsed?.definition ?? sourceControlClients.get(undefined));
@@ -213,11 +232,11 @@ export function WorktreePrBar({ thread, projectId, pr, onPrompt }: BarProps) {
           variant="outline"
           title={pr.title}
           onClick={() =>
-            link
+            prLink
               ? useRightPanelStore.getState().openPullRequest(thread, {
                   projectId,
-                  host: link.host,
-                  repository: link.repository,
+                  host: prLink.host,
+                  repository: prLink.repository,
                   number: pr.number,
                   url: pr.url,
                 })
@@ -243,7 +262,7 @@ export function WorktreePrBar({ thread, projectId, pr, onPrompt }: BarProps) {
         </Menu>
       </Group>
     );
-    if (!link)
+    if (!prLink)
       return (
         <BranchPrRow thread={thread} pr={pr}>
           {number}
@@ -253,7 +272,12 @@ export function WorktreePrBar({ thread, projectId, pr, onPrompt }: BarProps) {
       <LinkedActions
         thread={thread}
         pr={pr}
-        reference={{ projectId, host: link.host, repository: link.repository, number: pr.number }}
+        reference={{
+          projectId,
+          host: prLink.host,
+          repository: prLink.repository,
+          number: pr.number,
+        }}
         onPrompt={onPrompt}
       >
         {number}

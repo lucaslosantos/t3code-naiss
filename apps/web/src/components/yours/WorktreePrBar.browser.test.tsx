@@ -7,6 +7,19 @@ import { render } from "../../../test/render";
 import { useRightPanelStore } from "~/rightPanelStore";
 import { WorktreePrBar } from "./WorktreePrBar";
 
+const shellState = vi.hoisted(() => ({ pullRequests: [] as Array<unknown> }));
+vi.mock("~/state/entities", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("~/state/entities")>()),
+  useQuietThreadShell: () => ({
+    pullRequests: shellState.pullRequests,
+    linkedPullRequest: null,
+    branchPullRequest: null,
+  }),
+}));
+vi.mock("~/hooks/useSupportsMultiplePullRequests", () => ({
+  useSupportsMultiplePullRequests: () => true,
+}));
+
 vi.mock("~/state/usePullRequestStack", () => ({
   usePullRequestStack: () => ({ data: null, isFresh: true }),
 }));
@@ -24,11 +37,16 @@ vi.mock("../pullRequest/usePullRequestDetail", () => ({
   }),
 }));
 
+function setup(pullRequests: Array<unknown> = []) {
+  shellState.pullRequests = pullRequests;
+}
+
 it("opens the numbered PR in the right panel and offers the host link separately", async () => {
   const thread = {
     environmentId: EnvironmentId.make("local"),
     threadId: ThreadId.make("worktree"),
   };
+  setup();
   const projectId = ProjectId.make("repo");
   const url = "https://github.com/acme/demo/pull/3705";
   await using screen = await render(
@@ -60,4 +78,29 @@ it("opens the numbered PR in the right panel and offers the host link separately
   await screen.getByRole("button", { name: "Pull request options" }).click();
   await page.getByRole("menuitem", { name: "Open on GitHub" }).click();
   expect(external).toHaveBeenCalledWith(url);
+});
+
+it("shows the thread's linked PR when git finds none for the branch", async () => {
+  setup([
+    {
+      host: "github.com",
+      repository: "acme/demo",
+      number: 4127,
+      url: "https://github.com/acme/demo/pull/4127",
+      source: "agent",
+      linkedAt: "2026-11-26T00:00:00.000Z",
+      snapshot: null,
+      stack: null,
+    },
+  ]);
+  await using screen = await render(
+    <WorktreePrBar
+      thread={{ environmentId: EnvironmentId.make("local"), threadId: ThreadId.make("linked") }}
+      projectId={ProjectId.make("repo")}
+      pr={null}
+      onPrompt={() => {}}
+    />,
+  );
+  await expect.element(screen.getByRole("button", { name: "#4127", exact: true })).toBeVisible();
+  await expect.element(screen.getByText("Create PR")).not.toBeInTheDocument();
 });
