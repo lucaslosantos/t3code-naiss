@@ -61,6 +61,7 @@ it("opens the numbered PR in the right panel and offers the host link separately
         baseRef: "main",
         url,
       }}
+      branch="feature"
       onPrompt={() => {}}
     />,
   );
@@ -89,7 +90,15 @@ it("shows the thread's linked PR when git finds none for the branch", async () =
       url: "https://github.com/acme/demo/pull/4127",
       source: "agent",
       linkedAt: "2026-11-26T00:00:00.000Z",
-      snapshot: null,
+      snapshot: {
+        state: "open",
+        title: "Poppins 800",
+        headBranch: "lucas/core-5304",
+        baseBranch: "main",
+        isDraft: false,
+        updatedAt: null,
+        syncedAt: "2026-11-26T00:00:00.000Z",
+      },
       stack: null,
     },
   ]);
@@ -98,6 +107,7 @@ it("shows the thread's linked PR when git finds none for the branch", async () =
       thread={{ environmentId: EnvironmentId.make("local"), threadId: ThreadId.make("linked") }}
       projectId={ProjectId.make("repo")}
       pr={null}
+      branch="t3/copy-workspace-here"
       onPrompt={() => {}}
     />,
   );

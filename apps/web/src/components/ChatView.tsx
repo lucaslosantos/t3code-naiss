@@ -3498,6 +3498,7 @@ export default function ChatView(props: ChatViewProps) {
         thread={activeThreadRef}
         projectId={activeProject.id}
         pr={gitStatusQuery.data?.pr ?? null}
+        branch={gitStatusQuery.data?.refName ?? activeThread.branch ?? null}
         onPrompt={(prompt) => {
           writeHandoffToComposer(activeThreadRef, { prompt });
           if (rightPanelOpen && shouldUsePlanSidebarSheet) closePreviewPanelStable();
