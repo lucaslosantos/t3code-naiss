@@ -2,7 +2,7 @@
 
 Newest first. Each entry: date, what changed (plain words), merge commit.
 
-- 2026-11-26: The pull request bar above the right panel now shows the same pull request as the thread details panel (with its stack and status), instead of sometimes offering Create PR when the thread already has one. (merge 7d936d41e4)
+- 2026-11-26: The pull request bar above the right panel follows the branch you're on: it shows that branch's pull request, or the thread's linked one while it's still open, so it matches the details panel and no longer shows an old merged pull request (with a Continue that can't run) on a new branch that has none yet. (merges 7d936d41e4, 692987d2c6)
 
 - 2026-11-23: Five more warm section colors (lemon, gold, amber, peach, rust), and renaming a section shows a soft field in the section's own color instead of a harsh white box. (merge 39478255b7)
 
